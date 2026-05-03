@@ -585,6 +585,10 @@
     transition: transform var(--transition);
   }
   .modal-overlay.open .modal { transform: scale(1) translateY(0); }
+  @media (max-width: 480px) {
+    .modal { transform: translateY(60px); }
+    .modal-overlay.open .modal { transform: translateY(0); }
+  }
   .modal-header {
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 20px;
@@ -639,9 +643,98 @@
 
   /* ---- RESPONSIVE ---- */
   @media (max-width: 480px) {
-    .form-row { grid-template-columns: 1fr; }
+    /* Stats */
     .stats-row { grid-template-columns: repeat(3, 1fr); }
     .stat-value { font-size: 20px; }
+    .stat-card { padding: 12px 8px; }
+
+    /* Topbar */
+    .topbar { padding: 12px 14px; gap: 10px; }
+    .topbar-title { font-size: 16px; }
+    .topbar-subtitle { font-size: 11px; }
+    .streak-pill { padding: 4px 8px; font-size: 11px; }
+    /* Shrink "Add" button to icon-only on very small screens */
+    .topbar .btn-sm .btn-label { display: none; }
+    .topbar .btn-sm { padding: 9px 12px; }
+
+    /* Modal — bottom-sheet style */
+    .modal-overlay {
+      align-items: flex-end;
+      padding: 0;
+    }
+    .modal {
+      border-radius: 24px 24px 0 0;
+      padding: 20px 16px 28px;
+      max-width: 100%;
+      max-height: 92vh;
+    }
+    .modal-overlay.open .modal {
+      transform: scale(1) translateY(0);
+    }
+
+    /* Form */
+    .form-row { grid-template-columns: 1fr; }
+    .form-group { margin-bottom: 12px; }
+    .form-input { padding: 10px 12px; font-size: 14px; }
+
+    /* Form actions — full-width stacked */
+    .form-actions {
+      flex-direction: column-reverse;
+      gap: 8px;
+    }
+    .form-actions .btn {
+      width: 100%;
+      justify-content: center;
+      padding: 13px;
+    }
+
+    /* Admin medicine card — actions wrap below on small screens */
+    .admin-med-card {
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .admin-med-actions {
+      width: 100%;
+      margin-left: 0;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .admin-med-actions .btn-icon {
+      width: 36px; height: 36px;
+      flex: 0 0 auto;
+    }
+
+    /* Darshan tabs */
+    .darshan-tabs { padding: 12px 14px 0; gap: 8px; }
+    .darshan-tab { padding: 9px 8px; font-size: 13px; }
+
+    /* Darshan content */
+    .darshan-content { padding: 14px 14px 40px; }
+
+    /* Person view content */
+    .person-view-content { padding: 14px 14px 40px; }
+
+    /* Calendar smaller gaps on tiny screens */
+    .cal-grid { gap: 3px; }
+    .cal-day { font-size: 12px; border-radius: 8px; }
+
+    /* Toast — center bottom on mobile */
+    .toast-container {
+      bottom: 16px; right: 12px; left: 12px;
+      align-items: center;
+    }
+    .toast { max-width: 100%; width: 100%; justify-content: center; }
+  }
+
+  @media (max-width: 360px) {
+    .home-card { padding: 18px 14px; gap: 12px; }
+    .home-card-icon { width: 46px; height: 46px; }
+    .home-card-info h3 { font-size: 17px; }
+    .modal-title { font-size: 16px; }
+    .stat-value { font-size: 17px; }
+    .stat-label { font-size: 10px; }
   }
 
   /* MOM theme overrides */
@@ -842,7 +935,7 @@
       <div class="topbar-subtitle">Manage family medicines</div>
     </div>
     <button class="btn btn-sm btn-darshan" onclick="openAddModal()">
-      <i data-lucide="plus" style="width:14px;height:14px;"></i> Add
+      <i data-lucide="plus" style="width:14px;height:14px;"></i><span class="btn-label"> Add</span>
     </button>
   </div>
 
