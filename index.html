@@ -2,897 +2,563 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Family Medicine Tracker</title>
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
-  :root {
-    --bg: #0f0f1a;
-    --bg2: #16162a;
-    --card: rgba(255,255,255,0.05);
-    --card-hover: rgba(255,255,255,0.08);
-    --border: rgba(255,255,255,0.1);
-    --text: #f0f0ff;
-    --text-muted: rgba(240,240,255,0.55);
-    --mom: #f472b6;
-    --mom2: #ec4899;
-    --mom-glow: rgba(244,114,182,0.25);
-    --dad: #60a5fa;
-    --dad2: #3b82f6;
-    --dad-glow: rgba(96,165,250,0.25);
-    --darshan: #34d399;
-    --darshan2: #10b981;
-    --darshan-glow: rgba(52,211,153,0.25);
-    --success: #4ade80;
-    --warning: #fbbf24;
-    --danger: #f87171;
-    --radius: 18px;
-    --radius-sm: 10px;
-    --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
-  }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  html { scroll-behavior: smooth; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-  /* Background orbs */
-  body::before, body::after {
-    content: '';
-    position: fixed;
-    border-radius: 50%;
-    filter: blur(80px);
-    pointer-events: none;
-    z-index: 0;
-  }
-  body::before {
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(244,114,182,0.12), transparent 70%);
-    top: -100px; left: -100px;
-  }
-  body::after {
-    width: 500px; height: 500px;
-    background: radial-gradient(circle, rgba(96,165,250,0.12), transparent 70%);
-    bottom: -100px; right: -100px;
-  }
+:root {
+  --bg: #0f0f1a;
+  --card: rgba(255,255,255,0.05);
+  --card-hover: rgba(255,255,255,0.09);
+  --border: rgba(255,255,255,0.1);
+  --text: #f0f0ff;
+  --muted: rgba(240,240,255,0.5);
+  --mom: #f472b6; --mom2: #ec4899; --mom-g: rgba(244,114,182,0.22);
+  --dad: #60a5fa; --dad2: #3b82f6; --dad-g: rgba(96,165,250,0.22);
+  --ds: #34d399;  --ds2: #10b981;  --ds-g: rgba(52,211,153,0.22);
+  --green: #4ade80; --yellow: #fbbf24; --red: #f87171;
+  --r: 16px; --r-sm: 10px;
+  --ease: cubic-bezier(.4,0,.2,1);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  overflow: hidden;
+}
 
-  /* ---- VIEWS ---- */
-  .view {
-    position: fixed; inset: 0;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    opacity: 0;
-    pointer-events: none;
-    transform: translateY(20px) scale(0.98);
-    transition: opacity var(--transition), transform var(--transition);
-    z-index: 1;
-  }
-  .view.active {
-    opacity: 1;
-    pointer-events: all;
-    transform: translateY(0) scale(1);
-  }
+/* bg orbs */
+body::before { content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+  background: radial-gradient(ellipse 60% 40% at 0% 0%, rgba(244,114,182,.1), transparent),
+              radial-gradient(ellipse 50% 40% at 100% 100%, rgba(96,165,250,.1), transparent); }
 
-  /* ---- GLASS CARD ---- */
-  .glass {
-    background: var(--card);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-  }
-  .glass-sm {
-    background: var(--card);
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-sm);
-  }
+/* ===== VIEWS ===== */
+/* KEY FIX: display:none on inactive so they CANNOT intercept taps */
+.view { display:none; position:fixed; inset:0; overflow-y:auto; flex-direction:column; z-index:1; }
+.view.active { display:flex; animation: vIn .28s var(--ease) both; }
+@keyframes vIn { from{ opacity:0; transform:translateY(14px) scale(.98) } to{ opacity:1; transform:none } }
 
-  /* ---- BUTTONS ---- */
-  .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 12px 22px;
-    border: none; border-radius: var(--radius-sm);
-    font-size: 15px; font-weight: 600;
-    cursor: pointer;
-    transition: all var(--transition);
-    text-decoration: none;
-  }
-  .btn:active { transform: scale(0.97); }
-  .btn-ghost {
-    background: var(--card);
-    color: var(--text);
-    border: 1px solid var(--border);
-  }
-  .btn-ghost:hover { background: var(--card-hover); }
-  .btn-mom {
-    background: linear-gradient(135deg, var(--mom), var(--mom2));
-    color: #fff;
-    box-shadow: 0 4px 20px var(--mom-glow);
-  }
-  .btn-mom:hover { box-shadow: 0 6px 28px rgba(244,114,182,0.4); transform: translateY(-1px); }
-  .btn-dad {
-    background: linear-gradient(135deg, var(--dad), var(--dad2));
-    color: #fff;
-    box-shadow: 0 4px 20px var(--dad-glow);
-  }
-  .btn-dad:hover { box-shadow: 0 6px 28px rgba(96,165,250,0.4); transform: translateY(-1px); }
-  .btn-darshan {
-    background: linear-gradient(135deg, var(--darshan), var(--darshan2));
-    color: #fff;
-    box-shadow: 0 4px 20px var(--darshan-glow);
-  }
-  .btn-darshan:hover { box-shadow: 0 6px 28px rgba(52,211,153,0.4); transform: translateY(-1px); }
-  .btn-sm { padding: 8px 14px; font-size: 13px; }
-  .btn-icon {
-    width: 38px; height: 38px; padding: 0; border-radius: 50%;
-    background: var(--card); border: 1px solid var(--border); color: var(--text);
-    cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-    transition: all var(--transition);
-  }
-  .btn-icon:hover { background: var(--card-hover); }
+/* ===== GLASS ===== */
+.glass { background:var(--card); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid var(--border); border-radius:var(--r); }
+.glass-sm { background:var(--card); border:1px solid var(--border); border-radius:var(--r-sm); }
 
-  /* ---- HOME VIEW ---- */
-  #view-home {
-    background: linear-gradient(135deg, #0f0f1a 0%, #1a0f2e 50%, #0f1a2e 100%);
-    align-items: center; justify-content: center;
-    padding: 40px 20px;
-    gap: 0;
-  }
-  .home-hero {
-    text-align: center;
-    margin-bottom: 60px;
-  }
-  .home-logo {
-    width: 80px; height: 80px;
-    background: linear-gradient(135deg, #f472b6, #60a5fa);
-    border-radius: 24px;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 24px;
-    box-shadow: 0 8px 32px rgba(244,114,182,0.3);
-  }
-  .home-logo i { color: white; }
-  .home-title {
-    font-size: clamp(28px, 6vw, 42px);
-    font-weight: 800;
-    background: linear-gradient(135deg, #f0f0ff, #a78bfa, #60a5fa);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    line-height: 1.2;
-    margin-bottom: 10px;
-  }
-  .home-subtitle {
-    font-size: 16px;
-    color: var(--text-muted);
-    margin-bottom: 0;
-  }
-  .home-cards {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    width: 100%;
-    max-width: 380px;
-  }
-  .home-card {
-    padding: 28px 24px;
-    border-radius: 22px;
-    cursor: pointer;
-    transition: all var(--transition);
-    display: flex; align-items: center; gap: 20px;
-    border: 1px solid transparent;
-    position: relative;
-    overflow: hidden;
-  }
-  .home-card::before {
-    content: '';
-    position: absolute; inset: 0;
-    opacity: 0;
-    transition: opacity var(--transition);
-  }
-  .home-card:hover::before { opacity: 1; }
-  .home-card:hover { transform: translateY(-3px); }
-  .home-card:active { transform: scale(0.98); }
-  .home-card-mom {
-    background: rgba(244,114,182,0.08);
-    border-color: rgba(244,114,182,0.2);
-    box-shadow: 0 4px 24px rgba(244,114,182,0.1);
-  }
-  .home-card-mom:hover {
-    background: rgba(244,114,182,0.14);
-    box-shadow: 0 8px 32px rgba(244,114,182,0.2);
-    border-color: rgba(244,114,182,0.35);
-  }
-  .home-card-dad {
-    background: rgba(96,165,250,0.08);
-    border-color: rgba(96,165,250,0.2);
-    box-shadow: 0 4px 24px rgba(96,165,250,0.1);
-  }
-  .home-card-dad:hover {
-    background: rgba(96,165,250,0.14);
-    box-shadow: 0 8px 32px rgba(96,165,250,0.2);
-    border-color: rgba(96,165,250,0.35);
-  }
-  .home-card-darshan {
-    background: rgba(52,211,153,0.08);
-    border-color: rgba(52,211,153,0.2);
-    box-shadow: 0 4px 24px rgba(52,211,153,0.1);
-  }
-  .home-card-darshan:hover {
-    background: rgba(52,211,153,0.14);
-    box-shadow: 0 8px 32px rgba(52,211,153,0.2);
-    border-color: rgba(52,211,153,0.35);
-  }
-  .home-card-icon {
-    width: 56px; height: 56px;
-    border-radius: 16px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-    font-size: 24px;
-  }
-  .home-card-mom .home-card-icon { background: linear-gradient(135deg,#f472b6,#ec4899); box-shadow: 0 4px 16px rgba(244,114,182,0.4); }
-  .home-card-dad .home-card-icon { background: linear-gradient(135deg,#60a5fa,#3b82f6); box-shadow: 0 4px 16px rgba(96,165,250,0.4); }
-  .home-card-darshan .home-card-icon { background: linear-gradient(135deg,#34d399,#10b981); box-shadow: 0 4px 16px rgba(52,211,153,0.4); }
-  .home-card-info h3 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-  .home-card-info p { font-size: 13px; color: var(--text-muted); }
-  .home-card-arrow {
-    margin-left: auto;
-    color: var(--text-muted);
-    transition: transform var(--transition);
-  }
-  .home-card:hover .home-card-arrow { transform: translateX(4px); color: var(--text); }
-  .home-badge {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 4px 10px; border-radius: 20px;
-    font-size: 12px; font-weight: 600;
-    margin-top: 6px;
-  }
-  .badge-mom { background: rgba(244,114,182,0.15); color: var(--mom); border: 1px solid rgba(244,114,182,0.25); }
-  .badge-dad { background: rgba(96,165,250,0.15); color: var(--dad); border: 1px solid rgba(96,165,250,0.25); }
-  .badge-darshan { background: rgba(52,211,153,0.15); color: var(--darshan); border: 1px solid rgba(52,211,153,0.25); }
+/* ===== BUTTONS ===== */
+.btn {
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  padding:12px 20px; border:none; border-radius:var(--r-sm);
+  font-size:15px; font-weight:600; cursor:pointer; font-family:inherit;
+  transition:all .2s var(--ease); white-space:nowrap;
+}
+.btn:active { transform:scale(.96) !important; }
+.btn-ghost { background:var(--card); color:var(--text); border:1px solid var(--border); }
+.btn-ghost:hover { background:var(--card-hover); }
+.btn-mom  { background:linear-gradient(135deg,var(--mom),var(--mom2)); color:#fff; box-shadow:0 4px 18px var(--mom-g); }
+.btn-mom:hover  { box-shadow:0 6px 26px rgba(244,114,182,.4); transform:translateY(-1px); }
+.btn-dad  { background:linear-gradient(135deg,var(--dad),var(--dad2)); color:#fff; box-shadow:0 4px 18px var(--dad-g); }
+.btn-dad:hover  { box-shadow:0 6px 26px rgba(96,165,250,.4);  transform:translateY(-1px); }
+.btn-ds   { background:linear-gradient(135deg,var(--ds),var(--ds2));   color:#fff; box-shadow:0 4px 18px var(--ds-g);  }
+.btn-ds:hover   { box-shadow:0 6px 26px rgba(52,211,153,.4);   transform:translateY(-1px); }
+.btn-sm { padding:8px 14px; font-size:13px; }
+.btn-icon {
+  width:38px; height:38px; padding:0; border-radius:50%; border:1px solid var(--border);
+  background:var(--card); color:var(--text); cursor:pointer;
+  display:inline-flex; align-items:center; justify-content:center;
+  transition:background .2s; flex-shrink:0;
+}
+.btn-icon:hover { background:var(--card-hover); }
 
-  /* ---- TOPBAR ---- */
-  .topbar {
-    position: sticky; top: 0;
-    display: flex; align-items: center; gap: 12px;
-    padding: 14px 20px;
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--border);
-    z-index: 100;
-  }
-  .topbar-title { font-size: 18px; font-weight: 700; flex: 1; }
-  .topbar-subtitle { font-size: 13px; color: var(--text-muted); font-weight: 400; margin-top: 1px; }
+/* ===== HOME ===== */
+#view-home {
+  background:linear-gradient(135deg,#0f0f1a 0%,#1a0f2e 50%,#0f1a2e 100%);
+  align-items:center; justify-content:center; padding:32px 20px; gap:0;
+}
+.home-logo {
+  width:76px; height:76px; border-radius:22px; margin:0 auto 20px;
+  background:linear-gradient(135deg,#f472b6,#60a5fa);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 8px 30px rgba(244,114,182,.3);
+}
+.home-title {
+  font-size:clamp(26px,6vw,40px); font-weight:800; line-height:1.2; margin-bottom:8px;
+  background:linear-gradient(135deg,#f0f0ff,#a78bfa,#60a5fa);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  text-align:center;
+}
+.home-sub { font-size:15px; color:var(--muted); text-align:center; margin-bottom:48px; }
+.home-cards { display:flex; flex-direction:column; gap:14px; width:100%; max-width:380px; }
+.hcard {
+  padding:22px 20px; border-radius:20px; cursor:pointer; border:1px solid transparent;
+  display:flex; align-items:center; gap:16px;
+  transition:all .25s var(--ease); position:relative; overflow:hidden;
+}
+.hcard:active { transform:scale(.97); }
+.hcard-mom  { background:rgba(244,114,182,.07); border-color:rgba(244,114,182,.18); }
+.hcard-mom:hover  { background:rgba(244,114,182,.13); border-color:rgba(244,114,182,.32); transform:translateY(-2px); box-shadow:0 8px 28px rgba(244,114,182,.18); }
+.hcard-dad  { background:rgba(96,165,250,.07);  border-color:rgba(96,165,250,.18);  }
+.hcard-dad:hover  { background:rgba(96,165,250,.13);  border-color:rgba(96,165,250,.32);  transform:translateY(-2px); box-shadow:0 8px 28px rgba(96,165,250,.18);  }
+.hcard-ds   { background:rgba(52,211,153,.07);  border-color:rgba(52,211,153,.18);  }
+.hcard-ds:hover   { background:rgba(52,211,153,.13);  border-color:rgba(52,211,153,.32);  transform:translateY(-2px); box-shadow:0 8px 28px rgba(52,211,153,.18);  }
+.hcard-icon {
+  width:52px; height:52px; border-radius:14px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center; font-size:26px;
+}
+.hcard-mom .hcard-icon  { background:linear-gradient(135deg,#f472b6,#ec4899); box-shadow:0 4px 14px rgba(244,114,182,.4); }
+.hcard-dad .hcard-icon  { background:linear-gradient(135deg,#60a5fa,#3b82f6); box-shadow:0 4px 14px rgba(96,165,250,.4);  }
+.hcard-ds .hcard-icon   { background:linear-gradient(135deg,#34d399,#10b981); box-shadow:0 4px 14px rgba(52,211,153,.4);  }
+.hcard-body h3 { font-size:18px; font-weight:700; margin-bottom:3px; }
+.hcard-body p  { font-size:12px; color:var(--muted); }
+.hcard-badge {
+  display:inline-flex; align-items:center; gap:4px; padding:3px 9px;
+  border-radius:20px; font-size:11px; font-weight:600; margin-top:5px;
+}
+.badge-mom { background:rgba(244,114,182,.14); color:var(--mom); border:1px solid rgba(244,114,182,.25); }
+.badge-dad { background:rgba(96,165,250,.14);  color:var(--dad); border:1px solid rgba(96,165,250,.25);  }
+.badge-ds  { background:rgba(52,211,153,.14);  color:var(--ds);  border:1px solid rgba(52,211,153,.25);  }
+.hcard-arr { margin-left:auto; color:var(--muted); transition:transform .2s; flex-shrink:0; }
+.hcard:hover .hcard-arr { transform:translateX(4px); color:var(--text); }
 
-  /* ---- PERSON VIEW ---- */
-  .person-view-content {
-    padding: 20px;
-    max-width: 600px;
-    margin: 0 auto;
-    width: 100%;
-    padding-bottom: 40px;
-  }
+/* ===== TOPBAR ===== */
+.topbar {
+  position:sticky; top:0; z-index:50;
+  display:flex; align-items:center; gap:10px; padding:13px 16px;
+  border-bottom:1px solid var(--border);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  flex-shrink:0;
+}
+.topbar-info { flex:1; min-width:0; }
+.topbar-title  { font-size:17px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.topbar-sub    { font-size:12px; color:var(--muted); margin-top:1px; }
+.tb-mom  { background:linear-gradient(90deg,rgba(244,114,182,.13),transparent); border-color:rgba(244,114,182,.2); }
+.tb-dad  { background:linear-gradient(90deg,rgba(96,165,250,.13),transparent);  border-color:rgba(96,165,250,.2);  }
+.tb-ds   { background:linear-gradient(90deg,rgba(52,211,153,.13),transparent);  border-color:rgba(52,211,153,.2);  }
+.streak-pill {
+  display:inline-flex; align-items:center; gap:5px; padding:4px 10px;
+  border-radius:20px; font-size:12px; font-weight:600; flex-shrink:0;
+  background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.25); color:var(--yellow);
+}
 
-  /* ---- STATS ROW ---- */
-  .stats-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-  .stat-card {
-    padding: 16px;
-    border-radius: 14px;
-    text-align: center;
-  }
-  .stat-value { font-size: 26px; font-weight: 800; line-height: 1; }
-  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+/* ===== PERSON CONTENT ===== */
+.pcontent { padding:16px; max-width:600px; margin:0 auto; width:100%; padding-bottom:40px; }
 
-  /* ---- SECTION HEADER ---- */
-  .section-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 14px;
-  }
-  .section-title {
-    font-size: 15px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.8px;
-    color: var(--text-muted);
-  }
+/* Stats */
+.stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:20px; }
+.stat-card { padding:14px 10px; border-radius:14px; text-align:center; }
+.stat-val  { font-size:24px; font-weight:800; line-height:1; }
+.stat-lbl  { font-size:10px; color:var(--muted); margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
 
-  /* ---- CALENDAR ---- */
-  .calendar-wrap { margin-bottom: 24px; }
-  .cal-nav {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 14px;
-  }
-  .cal-month { font-size: 17px; font-weight: 700; }
-  .cal-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 5px;
-  }
-  .cal-day-label {
-    text-align: center;
-    font-size: 11px; font-weight: 600;
-    color: var(--text-muted);
-    padding: 4px 0;
-    text-transform: uppercase;
-  }
-  .cal-day {
-    aspect-ratio: 1;
-    border-radius: 10px;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    font-size: 13px; font-weight: 600;
-    cursor: pointer;
-    transition: all var(--transition);
-    position: relative;
-    border: 1.5px solid transparent;
-  }
-  .cal-day:hover:not(.cal-empty):not(.cal-future) { transform: scale(1.08); z-index: 1; }
-  .cal-empty { cursor: default; }
-  .cal-future { opacity: 0.3; cursor: default; }
-  .cal-today { border-color: rgba(255,255,255,0.4) !important; }
-  .cal-selected { border-color: rgba(255,255,255,0.7) !important; }
-  .cal-none { background: rgba(255,255,255,0.04); color: var(--text-muted); }
-  .cal-full { background: rgba(74,222,128,0.2); color: #4ade80; }
-  .cal-partial { background: rgba(251,191,36,0.2); color: #fbbf24; }
-  .cal-missed { background: rgba(248,113,113,0.15); color: #f87171; }
-  .cal-dot {
-    width: 5px; height: 5px; border-radius: 50%;
-    position: absolute; bottom: 4px;
-  }
+/* Calendar */
+.cal-wrap  { margin-bottom:20px; }
+.cal-nav   { display:flex; align-items:center; justify-content:space-between; padding:14px 14px 6px; }
+.cal-month { font-size:16px; font-weight:700; }
+.cal-grid  { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:6px 10px 14px; }
+.cal-lbl   { text-align:center; font-size:10px; font-weight:600; color:var(--muted); padding:3px 0; text-transform:uppercase; }
+.cal-day   {
+  aspect-ratio:1; border-radius:8px; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:600; cursor:pointer; border:1.5px solid transparent;
+  transition:transform .15s, box-shadow .15s;
+}
+.cal-day:active { transform:scale(.9); }
+.cal-empty  { cursor:default; }
+.cal-future { opacity:.28; cursor:default; pointer-events:none; }
+.cal-today  { border-color:rgba(255,255,255,.45)!important; }
+.cal-sel    { border-color:rgba(255,255,255,.8)!important; box-shadow:0 0 0 2px rgba(255,255,255,.15); }
+.cal-none   { background:rgba(255,255,255,.04); color:var(--muted); }
+.cal-full   { background:rgba(74,222,128,.2);   color:var(--green);  }
+.cal-part   { background:rgba(251,191,36,.2);   color:var(--yellow); }
+.cal-miss   { background:rgba(248,113,113,.14); color:var(--red);    }
+.cal-legend { display:flex; gap:10px; flex-wrap:wrap; padding:0 14px 14px; }
+.cal-legend span { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--muted); }
+.cal-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 
-  /* ---- TODAY SECTION ---- */
-  .today-date-label {
-    font-size: 22px; font-weight: 800;
-    margin-bottom: 16px;
-  }
-  .med-card {
-    padding: 18px;
-    margin-bottom: 12px;
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    transition: all var(--transition);
-  }
-  .med-card:hover { background: var(--card-hover); }
-  .med-card-top {
-    display: flex; align-items: flex-start; gap: 14px;
-    margin-bottom: 12px;
-  }
-  .med-dot {
-    width: 14px; height: 14px; border-radius: 50%;
-    flex-shrink: 0; margin-top: 3px;
-  }
-  .med-info { flex: 1; }
-  .med-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-  .med-dosage { font-size: 13px; color: var(--text-muted); }
-  .med-tags {
-    display: flex; flex-wrap: wrap; gap: 6px;
-    margin-bottom: 12px;
-  }
-  .tag {
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 11px; font-weight: 600;
-    display: inline-flex; align-items: center; gap: 4px;
-  }
-  .tag-before { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
-  .tag-after { background: rgba(74,222,128,0.12); color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
-  .tag-with { background: rgba(167,139,250,0.15); color: #a78bfa; border: 1px solid rgba(167,139,250,0.25); }
-  .tag-anytime { background: rgba(255,255,255,0.08); color: var(--text-muted); border: 1px solid var(--border); }
-  .tag-time { background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid var(--border); }
-  .tag-note { background: rgba(96,165,250,0.1); color: #60a5fa; border: 1px solid rgba(96,165,250,0.2); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .dose-checks {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-    gap: 8px;
-  }
-  .dose-check {
-    display: flex; flex-direction: column;
-    align-items: center; gap: 6px;
-    padding: 10px 8px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all var(--transition);
-    border: 1.5px solid var(--border);
-    background: rgba(255,255,255,0.03);
-    user-select: none;
-  }
-  .dose-check:hover { background: rgba(255,255,255,0.07); }
-  .dose-check.checked {
-    border-color: rgba(74,222,128,0.5);
-    background: rgba(74,222,128,0.1);
-  }
-  .dose-check-icon {
-    width: 28px; height: 28px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(255,255,255,0.06);
-    transition: all var(--transition);
-    font-size: 14px;
-  }
-  .dose-check.checked .dose-check-icon {
-    background: #4ade80;
-    color: #0f0f1a;
-  }
-  .dose-check-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
-  .dose-check.checked .dose-check-label { color: #4ade80; }
+/* Section header */
+.sec-hdr  { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; }
+.sec-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); }
+.sec-date  { font-size:20px; font-weight:800; margin-top:2px; }
+.sec-pct   { font-size:20px; font-weight:800; text-align:right; }
+.sec-done  { font-size:10px; color:var(--muted); }
+.prog-wrap { background:rgba(255,255,255,.06); border-radius:20px; height:5px; overflow:hidden; margin-bottom:18px; }
+.prog-fill { height:100%; border-radius:20px; transition:width .6s ease; background:linear-gradient(90deg,var(--green),#22d3ee); }
 
-  .empty-state {
-    text-align: center;
-    padding: 48px 20px;
-    color: var(--text-muted);
-  }
-  .empty-state i { margin-bottom: 16px; opacity: 0.4; }
-  .empty-state h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-  .empty-state p { font-size: 14px; }
+/* Medicine cards */
+.med-card { padding:16px; margin-bottom:10px; border-radius:14px; border:1px solid var(--border); background:var(--card); transition:background .2s; }
+.med-card:hover { background:var(--card-hover); }
+.med-top  { display:flex; align-items:flex-start; gap:12px; margin-bottom:10px; }
+.med-dot  { width:13px; height:13px; border-radius:50%; flex-shrink:0; margin-top:3px; }
+.med-name { font-size:15px; font-weight:700; margin-bottom:3px; }
+.med-sub  { font-size:12px; color:var(--muted); }
+.med-tags { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:10px; }
+.tag { padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:4px; }
+.tag-before { background:rgba(251,191,36,.14); color:var(--yellow); border:1px solid rgba(251,191,36,.24); }
+.tag-after  { background:rgba(74,222,128,.11);  color:var(--green);  border:1px solid rgba(74,222,128,.2);  }
+.tag-with   { background:rgba(167,139,250,.14); color:#a78bfa;       border:1px solid rgba(167,139,250,.24); }
+.tag-any    { background:rgba(255,255,255,.07); color:var(--muted);  border:1px solid var(--border); }
+.tag-time   { background:rgba(255,255,255,.05); color:var(--muted);  border:1px solid var(--border); }
+.tag-note   { background:rgba(96,165,250,.1);   color:var(--dad);    border:1px solid rgba(96,165,250,.2); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.dose-grid  { display:grid; grid-template-columns:repeat(auto-fit,minmax(76px,1fr)); gap:7px; }
+.dose-btn {
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:9px 6px; border-radius:11px; cursor:pointer; user-select:none;
+  border:1.5px solid var(--border); background:rgba(255,255,255,.03);
+  transition:all .18s var(--ease);
+}
+.dose-btn:active { transform:scale(.93); }
+.dose-btn:hover  { background:rgba(255,255,255,.07); }
+.dose-btn.done   { border-color:rgba(74,222,128,.45); background:rgba(74,222,128,.1); }
+.dose-ico  { width:26px; height:26px; border-radius:50%; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,.07); transition:all .18s; }
+.dose-btn.done .dose-ico { background:var(--green); color:#0f0f1a; }
+.dose-lbl  { font-size:10px; color:var(--muted); font-weight:500; }
+.dose-btn.done .dose-lbl { color:var(--green); }
+/* theme overrides */
+.theme-mom .dose-btn.done { border-color:rgba(244,114,182,.45); background:rgba(244,114,182,.1); }
+.theme-mom .dose-btn.done .dose-ico { background:var(--mom); }
+.theme-mom .dose-btn.done .dose-lbl { color:var(--mom); }
+.theme-mom .prog-fill { background:linear-gradient(90deg,var(--mom),#f9a8d4); }
+.theme-mom .cal-full  { background:rgba(244,114,182,.2); color:var(--mom); }
+.theme-dad .dose-btn.done { border-color:rgba(96,165,250,.45); background:rgba(96,165,250,.1); }
+.theme-dad .dose-btn.done .dose-ico { background:var(--dad); }
+.theme-dad .dose-btn.done .dose-lbl { color:var(--dad); }
+.theme-dad .prog-fill { background:linear-gradient(90deg,var(--dad),#93c5fd); }
+.theme-dad .cal-full  { background:rgba(96,165,250,.2); color:var(--dad); }
 
-  /* ---- PROGRESS BAR ---- */
-  .progress-bar-wrap {
-    background: rgba(255,255,255,0.06);
-    border-radius: 20px;
-    height: 6px;
-    overflow: hidden;
-    margin-top: 8px;
-  }
-  .progress-bar-fill {
-    height: 100%;
-    border-radius: 20px;
-    transition: width 0.6s ease;
-    background: linear-gradient(90deg, #4ade80, #22d3ee);
-  }
+/* Empty / no meds */
+.no-meds { text-align:center; padding:28px 16px; border-radius:14px; border:1.5px dashed var(--border); color:var(--muted); font-size:13px; margin-bottom:16px; }
+.empty-state { text-align:center; padding:44px 20px; color:var(--muted); }
+.empty-state h3 { font-size:17px; font-weight:700; color:var(--text); margin:12px 0 6px; }
+.empty-state p { font-size:13px; }
 
-  /* ---- DARSHAN VIEW ---- */
-  .darshan-tabs {
-    display: flex; gap: 10px;
-    padding: 16px 20px 0;
-    max-width: 600px; margin: 0 auto; width: 100%;
-  }
-  .darshan-tab {
-    flex: 1;
-    padding: 10px;
-    border-radius: 12px;
-    text-align: center;
-    font-size: 14px; font-weight: 600;
-    cursor: pointer;
-    border: 1.5px solid var(--border);
-    background: var(--card);
-    color: var(--text-muted);
-    transition: all var(--transition);
-  }
-  .darshan-tab.active-mom {
-    border-color: rgba(244,114,182,0.5);
-    background: rgba(244,114,182,0.1);
-    color: var(--mom);
-  }
-  .darshan-tab.active-dad {
-    border-color: rgba(96,165,250,0.5);
-    background: rgba(96,165,250,0.1);
-    color: var(--dad);
-  }
-  .darshan-content {
-    padding: 20px;
-    max-width: 600px; margin: 0 auto; width: 100%;
-    padding-bottom: 40px;
-  }
+/* ===== DARSHAN VIEW ===== */
+#view-darshan { background:var(--bg); }
+.ds-tabs { display:flex; gap:10px; padding:14px 16px 0; max-width:600px; margin:0 auto; width:100%; }
+.ds-tab {
+  flex:1; padding:10px 8px; border-radius:12px; text-align:center;
+  font-size:14px; font-weight:600; cursor:pointer;
+  border:1.5px solid var(--border); background:var(--card); color:var(--muted);
+  transition:all .2s var(--ease);
+}
+.ds-tab:active { transform:scale(.97); }
+.ds-tab.t-mom { border-color:rgba(244,114,182,.45); background:rgba(244,114,182,.1); color:var(--mom); }
+.ds-tab.t-dad { border-color:rgba(96,165,250,.45);  background:rgba(96,165,250,.1);  color:var(--dad); }
+.ds-content { padding:14px 16px 40px; max-width:600px; margin:0 auto; width:100%; }
 
-  /* ---- FORM ---- */
-  .add-form {
-    padding: 22px;
-    margin-bottom: 20px;
-    border-radius: var(--radius);
-    border: 1px solid var(--border);
-    background: var(--card);
-  }
-  .form-title {
-    font-size: 16px; font-weight: 700;
-    margin-bottom: 18px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .form-group { margin-bottom: 14px; }
-  .form-label {
-    display: block;
-    font-size: 12px; font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase; letter-spacing: 0.5px;
-    margin-bottom: 6px;
-  }
-  .form-input {
-    width: 100%;
-    padding: 11px 14px;
-    border-radius: 10px;
-    border: 1.5px solid var(--border);
-    background: rgba(255,255,255,0.05);
-    color: var(--text);
-    font-size: 14px;
-    transition: border-color var(--transition);
-    outline: none;
-    font-family: inherit;
-  }
-  .form-input:focus { border-color: rgba(255,255,255,0.3); }
-  .form-input::placeholder { color: var(--text-muted); }
-  select.form-input { cursor: pointer; }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .form-actions { display: flex; gap: 10px; margin-top: 6px; justify-content: flex-end; }
+/* Admin medicine card */
+.adm-card {
+  padding:14px; border-radius:14px; border:1px solid var(--border);
+  background:var(--card); margin-bottom:10px;
+  display:flex; align-items:flex-start; gap:12px; transition:background .2s;
+}
+.adm-card:hover { background:var(--card-hover); }
+.adm-info { flex:1; min-width:0; }
+.adm-name  { font-weight:700; font-size:15px; margin-bottom:3px; }
+.adm-sub   { font-size:12px; color:var(--muted); margin-bottom:7px; }
+.adm-tags  { display:flex; flex-wrap:wrap; gap:5px; }
+.adm-note  { font-size:12px; color:var(--muted); margin-top:5px; }
+.adm-actions { display:flex; gap:7px; flex-shrink:0; }
 
-  .checkbox-group {
-    display: flex; flex-wrap: wrap; gap: 8px;
-  }
-  .checkbox-item {
-    display: flex; align-items: center; gap: 6px;
-    padding: 7px 12px;
-    border-radius: 20px;
-    border: 1.5px solid var(--border);
-    cursor: pointer;
-    transition: all var(--transition);
-    font-size: 13px; font-weight: 500;
-    user-select: none;
-  }
-  .checkbox-item:hover { background: var(--card-hover); }
-  .checkbox-item.active {
-    border-color: rgba(255,255,255,0.4);
-    background: rgba(255,255,255,0.1);
-  }
-  .color-picker-row {
-    display: flex; flex-wrap: wrap; gap: 8px;
-  }
-  .color-opt {
-    width: 28px; height: 28px; border-radius: 50%;
-    cursor: pointer; border: 2px solid transparent;
-    transition: all var(--transition);
-  }
-  .color-opt.selected { border-color: white; transform: scale(1.15); }
-  .color-opt:hover { transform: scale(1.1); }
+/* ===== MODAL ===== */
+.overlay {
+  position:fixed; inset:0; z-index:500;
+  background:rgba(0,0,0,.55); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);
+  display:none; align-items:center; justify-content:center; padding:20px;
+}
+.overlay.open { display:flex; animation:fadeIn .2s var(--ease); }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+.modal {
+  background:#181828; border:1px solid var(--border); border-radius:20px;
+  padding:24px; width:100%; max-width:440px; max-height:90vh; overflow-y:auto;
+  animation:slideUp .25s var(--ease) both;
+}
+@keyframes slideUp { from{transform:translateY(16px) scale(.97);opacity:0} to{transform:none;opacity:1} }
+.modal-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+.modal-title { font-size:17px; font-weight:700; }
 
-  /* ---- MEDICINE LIST IN DARSHAN ---- */
-  .admin-med-card {
-    padding: 16px;
-    border-radius: 14px;
-    border: 1px solid var(--border);
-    background: var(--card);
-    margin-bottom: 10px;
-    display: flex; align-items: flex-start; gap: 12px;
-    transition: all var(--transition);
-  }
-  .admin-med-card:hover { background: var(--card-hover); }
-  .admin-med-actions { display: flex; gap: 8px; margin-left: auto; }
+/* Form */
+.fg { margin-bottom:13px; }
+.fl { display:block; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; }
+.fi {
+  width:100%; padding:10px 13px; border-radius:var(--r-sm);
+  border:1.5px solid var(--border); background:rgba(255,255,255,.05);
+  color:var(--text); font-size:14px; font-family:inherit; outline:none;
+  transition:border-color .2s; -webkit-appearance:none;
+}
+.fi:focus { border-color:rgba(255,255,255,.3); }
+.fi::placeholder { color:var(--muted); }
+select.fi { cursor:pointer; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px; }
+.f-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.f-actions { display:flex; gap:8px; margin-top:8px; justify-content:flex-end; }
 
-  /* ---- MODAL ---- */
-  .modal-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(8px);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 1000;
-    opacity: 0; pointer-events: none;
-    transition: opacity var(--transition);
-    padding: 20px;
-  }
-  .modal-overlay.open { opacity: 1; pointer-events: all; }
-  .modal {
-    background: #1a1a2e;
-    border: 1px solid var(--border);
-    border-radius: 22px;
-    padding: 28px;
-    width: 100%; max-width: 440px;
-    max-height: 90vh; overflow-y: auto;
-    transform: scale(0.95) translateY(10px);
-    transition: transform var(--transition);
-  }
-  .modal-overlay.open .modal { transform: scale(1) translateY(0); }
-  .modal-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: 20px;
-  }
-  .modal-title { font-size: 18px; font-weight: 700; }
+.cb-group { display:flex; flex-wrap:wrap; gap:7px; }
+.cb-item {
+  display:flex; align-items:center; gap:5px; padding:6px 11px;
+  border-radius:20px; border:1.5px solid var(--border);
+  cursor:pointer; font-size:13px; font-weight:500; user-select:none;
+  transition:all .18s; background:transparent;
+}
+.cb-item:hover { background:var(--card-hover); }
+.cb-item.on { border-color:rgba(255,255,255,.38); background:rgba(255,255,255,.09); color:var(--text); }
 
-  /* ---- TOAST ---- */
-  .toast-container {
-    position: fixed; bottom: 24px; right: 24px;
-    z-index: 9999;
-    display: flex; flex-direction: column; gap: 10px;
-    pointer-events: none;
-  }
-  .toast {
-    padding: 12px 20px;
-    border-radius: 12px;
-    font-size: 14px; font-weight: 500;
-    background: #1e1e3a;
-    border: 1px solid var(--border);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-    transform: translateX(100px);
-    opacity: 0;
-    transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
-    display: flex; align-items: center; gap: 10px;
-    max-width: 320px;
-  }
-  .toast.show { transform: translateX(0); opacity: 1; }
-  .toast-success { border-color: rgba(74,222,128,0.3); color: #4ade80; }
-  .toast-error { border-color: rgba(248,113,113,0.3); color: #f87171; }
-  .toast-info { border-color: rgba(96,165,250,0.3); color: #60a5fa; }
+.clr-row { display:flex; flex-wrap:wrap; gap:7px; }
+.clr-opt { width:26px; height:26px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:all .18s; }
+.clr-opt.on { border-color:#fff; transform:scale(1.18); }
+.clr-opt:hover { transform:scale(1.1); }
 
-  /* ---- SCROLLBAR ---- */
-  ::-webkit-scrollbar { width: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+/* ===== SHARE DIALOG ===== */
+.share-box {
+  background: rgba(52,211,153,.07); border:1.5px solid rgba(52,211,153,.25);
+  border-radius:14px; padding:16px; margin-bottom:4px;
+}
+.share-url {
+  width:100%; background:rgba(0,0,0,.3); border:1.5px solid var(--border);
+  border-radius:10px; padding:10px 12px; color:var(--text); font-size:12px;
+  font-family:monospace; resize:none; outline:none; word-break:break-all;
+  line-height:1.5; min-height:70px;
+}
+.share-hint { font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5; }
+.share-hint b { color:var(--text); }
 
-  /* ---- ANIMATIONS ---- */
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-  @keyframes bounce-in { 0%{transform:scale(0.5);opacity:0} 80%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
-  .bounce-in { animation: bounce-in 0.4s ease forwards; }
+/* ===== TOAST ===== */
+.toast-wrap { position:fixed; bottom:20px; right:16px; z-index:9999; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+.toast {
+  padding:11px 16px; border-radius:11px; font-size:13px; font-weight:500;
+  background:#1c1c30; border:1px solid var(--border); box-shadow:0 6px 20px rgba(0,0,0,.4);
+  display:flex; align-items:center; gap:8px; max-width:300px;
+  transform:translateX(120%); opacity:0; transition:all .35s var(--ease);
+}
+.toast.in { transform:none; opacity:1; }
+.toast-ok  { border-color:rgba(74,222,128,.3);  color:var(--green);  }
+.toast-err { border-color:rgba(248,113,113,.3); color:var(--red);    }
+.toast-inf { border-color:rgba(96,165,250,.3);  color:var(--dad);    }
 
-  /* ---- STREAKS / PILLS ---- */
-  .streak-pill {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 13px; font-weight: 600;
-    background: rgba(251,191,36,0.1);
-    border: 1px solid rgba(251,191,36,0.25);
-    color: #fbbf24;
-  }
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:rgba(255,255,255,.12); border-radius:3px; }
 
-  /* ---- RESPONSIVE ---- */
-  @media (max-width: 480px) {
-    .form-row { grid-template-columns: 1fr; }
-    .stats-row { grid-template-columns: repeat(3, 1fr); }
-    .stat-value { font-size: 20px; }
-  }
+/* ===== RESPONSIVE ===== */
+@media (max-width:480px) {
+  /* Topbar */
+  .topbar { padding:11px 13px; gap:9px; }
+  .topbar-title { font-size:15px; }
+  .topbar-sub { font-size:11px; }
+  .streak-pill { padding:3px 8px; font-size:11px; }
+  .streak-pill .sl { display:none; } /* hide text, keep flame icon */
 
-  /* MOM theme overrides */
-  .theme-mom .cal-full { background: rgba(244,114,182,0.2); color: var(--mom); }
-  .theme-mom .progress-bar-fill { background: linear-gradient(90deg, var(--mom), #f9a8d4); }
-  .theme-mom .dose-check.checked { border-color: rgba(244,114,182,0.5); background: rgba(244,114,182,0.1); }
-  .theme-mom .dose-check.checked .dose-check-icon { background: var(--mom); }
-  .theme-mom .dose-check.checked .dose-check-label { color: var(--mom); }
-  /* DAD theme overrides */
-  .theme-dad .cal-full { background: rgba(96,165,250,0.2); color: var(--dad); }
-  .theme-dad .progress-bar-fill { background: linear-gradient(90deg, var(--dad), #93c5fd); }
-  .theme-dad .dose-check.checked { border-color: rgba(96,165,250,0.5); background: rgba(96,165,250,0.1); }
-  .theme-dad .dose-check.checked .dose-check-icon { background: var(--dad); }
-  .theme-dad .dose-check.checked .dose-check-label { color: var(--dad); }
+  /* Home */
+  .home-sub { margin-bottom:32px; }
+  .hcard { padding:18px 16px; gap:13px; }
+  .hcard-icon { width:46px; height:46px; font-size:22px; }
+  .hcard-body h3 { font-size:16px; }
 
-  .topbar-mom { background: linear-gradient(90deg, rgba(244,114,182,0.15), transparent); border-bottom-color: rgba(244,114,182,0.2); }
-  .topbar-dad { background: linear-gradient(90deg, rgba(96,165,250,0.15), transparent); border-bottom-color: rgba(96,165,250,0.2); }
-  .topbar-darshan { background: linear-gradient(90deg, rgba(52,211,153,0.15), transparent); border-bottom-color: rgba(52,211,153,0.2); }
+  /* Person */
+  .pcontent { padding:13px 13px 40px; }
+  .stat-val { font-size:20px; }
+  .cal-grid { gap:3px; padding:4px 8px 12px; }
+  .cal-day { font-size:11px; border-radius:7px; }
 
-  .no-meds-banner {
-    text-align: center; padding: 32px 20px;
-    border-radius: 16px; border: 1.5px dashed var(--border);
-    color: var(--text-muted); font-size: 14px;
-    margin-bottom: 20px;
-  }
-  .cal-today-indicator {
-    position: absolute; bottom: 3px;
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: white;
-  }
-  #view-mom, #view-dad { background: var(--bg); }
-  #view-darshan { background: var(--bg); }
+  /* Modal — bottom sheet */
+  .overlay { padding:0; align-items:flex-end; }
+  .modal { border-radius:22px 22px 0 0; padding:20px 16px 28px; max-width:100%; max-height:90vh; animation:sheetUp .28s var(--ease) both; }
+  @keyframes sheetUp { from{transform:translateY(60px);opacity:.5} to{transform:none;opacity:1} }
+  .f-row { grid-template-columns:1fr; }
+  .f-actions { flex-direction:column-reverse; }
+  .f-actions .btn { width:100%; padding:13px; }
+
+  /* Darshan */
+  .ds-tabs { padding:12px 13px 0; gap:8px; }
+  .ds-tab { padding:9px 8px; font-size:13px; }
+  .ds-content { padding:12px 13px 40px; }
+  .adm-card { flex-wrap:wrap; }
+  .adm-actions { width:100%; justify-content:flex-end; padding-top:10px; margin-top:4px; border-top:1px solid var(--border); gap:10px; }
+
+  /* Toast */
+  .toast-wrap { left:12px; right:12px; bottom:14px; align-items:center; }
+  .toast { max-width:100%; width:100%; justify-content:center; }
+
+  /* Add button text */
+  .btn-lbl { display:none; }
+  .topbar .btn-sm { padding:8px 11px; }
+}
+@media (max-width:360px) {
+  .stat-val { font-size:17px; }
+  .hcard-icon { width:42px; height:42px; font-size:20px; }
+}
 </style>
 </head>
 <body>
 
-<!-- =================== HOME VIEW =================== -->
+<!-- ===== HOME ===== -->
 <div class="view active" id="view-home">
-  <div class="home-hero">
+  <div style="text-align:center;margin-bottom:0;padding-top:8px;">
     <div class="home-logo">
-      <i data-lucide="pill" style="width:40px;height:40px;"></i>
+      <i data-lucide="pill" style="width:38px;height:38px;color:white;"></i>
     </div>
     <h1 class="home-title">Family Medicine<br>Tracker</h1>
-    <p class="home-subtitle">Managed with love by Darshan</p>
+    <p class="home-sub">Managed with love by Darshan</p>
   </div>
 
   <div class="home-cards">
-    <div class="home-card home-card-mom" onclick="openPerson('mom')">
-      <div class="home-card-icon">
-        <span style="font-size:28px;">🌸</span>
-      </div>
-      <div class="home-card-info">
-        <h3 style="color:var(--mom);">Mom</h3>
+    <div class="hcard hcard-mom" onclick="openPerson('mom')">
+      <div class="hcard-icon">🌸</div>
+      <div class="hcard-body">
+        <h3 style="color:var(--mom)">Mom</h3>
         <p>Track mom's medicines</p>
-        <div class="home-badge badge-mom" id="home-badge-mom">
-          <i data-lucide="pill" style="width:11px;height:11px;"></i>
-          <span id="home-mom-count">0 medicines</span>
+        <div class="hcard-badge badge-mom">
+          <i data-lucide="pill" style="width:10px;height:10px;"></i>
+          <span id="hbadge-mom">0 medicines</span>
         </div>
       </div>
-      <i data-lucide="chevron-right" class="home-card-arrow" style="width:20px;height:20px;"></i>
+      <i data-lucide="chevron-right" class="hcard-arr" style="width:18px;height:18px;"></i>
     </div>
 
-    <div class="home-card home-card-dad" onclick="openPerson('dad')">
-      <div class="home-card-icon">
-        <span style="font-size:28px;">🏔️</span>
-      </div>
-      <div class="home-card-info">
-        <h3 style="color:var(--dad);">Dad</h3>
+    <div class="hcard hcard-dad" onclick="openPerson('dad')">
+      <div class="hcard-icon">🏔️</div>
+      <div class="hcard-body">
+        <h3 style="color:var(--dad)">Dad</h3>
         <p>Track dad's medicines</p>
-        <div class="home-badge badge-dad" id="home-badge-dad">
-          <i data-lucide="pill" style="width:11px;height:11px;"></i>
-          <span id="home-dad-count">0 medicines</span>
+        <div class="hcard-badge badge-dad">
+          <i data-lucide="pill" style="width:10px;height:10px;"></i>
+          <span id="hbadge-dad">0 medicines</span>
         </div>
       </div>
-      <i data-lucide="chevron-right" class="home-card-arrow" style="width:20px;height:20px;"></i>
+      <i data-lucide="chevron-right" class="hcard-arr" style="width:18px;height:18px;"></i>
     </div>
 
-    <div class="home-card home-card-darshan" onclick="openDarshan()">
-      <div class="home-card-icon">
-        <span style="font-size:28px;">⚕️</span>
-      </div>
-      <div class="home-card-info">
-        <h3 style="color:var(--darshan);">Darshan</h3>
+    <div class="hcard hcard-ds" onclick="openDarshan()">
+      <div class="hcard-icon">⚕️</div>
+      <div class="hcard-body">
+        <h3 style="color:var(--ds)">Darshan</h3>
         <p>Manage medicines for both</p>
-        <div class="home-badge badge-darshan">
-          <i data-lucide="settings" style="width:11px;height:11px;"></i>
+        <div class="hcard-badge badge-ds">
+          <i data-lucide="settings" style="width:10px;height:10px;"></i>
           Admin Panel
         </div>
       </div>
-      <i data-lucide="chevron-right" class="home-card-arrow" style="width:20px;height:20px;"></i>
+      <i data-lucide="chevron-right" class="hcard-arr" style="width:18px;height:18px;"></i>
     </div>
   </div>
 </div>
 
-<!-- =================== PERSON VIEW (MOM / DAD) =================== -->
+<!-- ===== PERSON VIEW ===== -->
 <div class="view" id="view-person">
-  <!-- Topbar -->
-  <div class="topbar" id="person-topbar">
+  <div class="topbar" id="p-topbar">
     <button class="btn-icon" onclick="goHome()">
-      <i data-lucide="arrow-left" style="width:18px;height:18px;"></i>
+      <i data-lucide="arrow-left" style="width:17px;height:17px;"></i>
     </button>
-    <div>
-      <div class="topbar-title" id="person-title">Mom</div>
-      <div class="topbar-subtitle" id="person-date-title"></div>
+    <div class="topbar-info">
+      <div class="topbar-title" id="p-title">Mom</div>
+      <div class="topbar-sub" id="p-sub"></div>
     </div>
-    <div id="person-streak" class="streak-pill" style="display:none;">
-      <i data-lucide="flame" style="width:14px;height:14px;"></i>
-      <span id="streak-count">0 day streak</span>
+    <div class="streak-pill" id="p-streak" style="display:none;">
+      <i data-lucide="flame" style="width:13px;height:13px;"></i>
+      <span class="sl" id="streak-txt"></span>
     </div>
   </div>
 
-  <div class="person-view-content" id="person-content">
-    <!-- Stats -->
-    <div class="stats-row" id="stats-row">
+  <div class="pcontent">
+    <div class="stats-row">
       <div class="stat-card glass-sm">
-        <div class="stat-value" id="stat-total">0</div>
-        <div class="stat-label">Medicines</div>
+        <div class="stat-val" id="st-total">0</div>
+        <div class="stat-lbl">Medicines</div>
       </div>
       <div class="stat-card glass-sm">
-        <div class="stat-value" id="stat-today">0%</div>
-        <div class="stat-label">Today</div>
+        <div class="stat-val" id="st-today">—</div>
+        <div class="stat-lbl">Today</div>
       </div>
       <div class="stat-card glass-sm">
-        <div class="stat-value" id="stat-streak">0</div>
-        <div class="stat-label">Day Streak</div>
+        <div class="stat-val" id="st-streak">0</div>
+        <div class="stat-lbl">Day Streak</div>
       </div>
     </div>
 
     <!-- Calendar -->
-    <div class="glass calendar-wrap">
-      <div style="padding:16px 16px 0;">
-        <div class="cal-nav">
-          <button class="btn-icon" id="cal-prev" onclick="calNav(-1)">
-            <i data-lucide="chevron-left" style="width:16px;height:16px;"></i>
-          </button>
-          <div class="cal-month" id="cal-month-label"></div>
-          <button class="btn-icon" id="cal-next" onclick="calNav(1)">
-            <i data-lucide="chevron-right" style="width:16px;height:16px;"></i>
-          </button>
-        </div>
-        <div class="cal-grid" id="cal-day-labels">
-          <div class="cal-day-label">Su</div>
-          <div class="cal-day-label">Mo</div>
-          <div class="cal-day-label">Tu</div>
-          <div class="cal-day-label">We</div>
-          <div class="cal-day-label">Th</div>
-          <div class="cal-day-label">Fr</div>
-          <div class="cal-day-label">Sa</div>
-        </div>
+    <div class="glass cal-wrap">
+      <div class="cal-nav">
+        <button class="btn-icon" onclick="calNav(-1)"><i data-lucide="chevron-left" style="width:15px;height:15px;"></i></button>
+        <div class="cal-month" id="cal-month"></div>
+        <button class="btn-icon" onclick="calNav(1)"><i data-lucide="chevron-right" style="width:15px;height:15px;"></i></button>
       </div>
-      <div style="padding:8px 16px 16px;">
-        <div class="cal-grid" id="cal-days"></div>
+      <div class="cal-grid" id="cal-labels">
+        <div class="cal-lbl">Su</div><div class="cal-lbl">Mo</div><div class="cal-lbl">Tu</div>
+        <div class="cal-lbl">We</div><div class="cal-lbl">Th</div><div class="cal-lbl">Fr</div><div class="cal-lbl">Sa</div>
       </div>
-      <div style="padding:0 16px 16px;display:flex;gap:12px;flex-wrap:wrap;">
-        <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);">
-          <span style="width:10px;height:10px;border-radius:50%;background:rgba(74,222,128,0.3);display:inline-block;"></span>All taken
-        </span>
-        <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);">
-          <span style="width:10px;height:10px;border-radius:50%;background:rgba(251,191,36,0.3);display:inline-block;"></span>Partial
-        </span>
-        <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);">
-          <span style="width:10px;height:10px;border-radius:50%;background:rgba(248,113,113,0.2);display:inline-block;"></span>Missed
-        </span>
+      <div class="cal-grid" id="cal-days"></div>
+      <div class="cal-legend">
+        <span><span class="cal-dot" style="background:rgba(74,222,128,.4)"></span>All taken</span>
+        <span><span class="cal-dot" style="background:rgba(251,191,36,.4)"></span>Partial</span>
+        <span><span class="cal-dot" style="background:rgba(248,113,113,.3)"></span>Missed</span>
       </div>
     </div>
 
-    <!-- Selected Day Section -->
-    <div class="section-header">
+    <!-- Day medicines -->
+    <div class="sec-hdr">
       <div>
-        <div class="section-title">Medicines for</div>
-        <div class="today-date-label" id="selected-date-label"></div>
+        <div class="sec-title">Medicines for</div>
+        <div class="sec-date" id="sel-date-lbl"></div>
       </div>
-      <div id="day-progress-wrap" style="text-align:right;">
-        <div style="font-size:22px;font-weight:800;" id="day-progress-pct">0%</div>
-        <div style="font-size:11px;color:var(--text-muted);">completed</div>
+      <div>
+        <div class="sec-pct" id="day-pct">0%</div>
+        <div class="sec-done">completed</div>
       </div>
     </div>
-
-    <div class="progress-bar-wrap" style="margin-bottom:20px;">
-      <div class="progress-bar-fill" id="day-progress-bar" style="width:0%"></div>
-    </div>
-
-    <div id="med-list-container">
-      <!-- Medicine cards rendered here -->
-    </div>
+    <div class="prog-wrap"><div class="prog-fill" id="day-prog" style="width:0%"></div></div>
+    <div id="med-list"></div>
   </div>
 </div>
 
-<!-- =================== DARSHAN VIEW =================== -->
+<!-- ===== DARSHAN VIEW ===== -->
 <div class="view" id="view-darshan">
-  <div class="topbar topbar-darshan">
+  <div class="topbar tb-ds">
     <button class="btn-icon" onclick="goHome()">
-      <i data-lucide="arrow-left" style="width:18px;height:18px;"></i>
+      <i data-lucide="arrow-left" style="width:17px;height:17px;"></i>
     </button>
-    <div>
+    <div class="topbar-info">
       <div class="topbar-title">Darshan's Panel</div>
-      <div class="topbar-subtitle">Manage family medicines</div>
+      <div class="topbar-sub">Manage family medicines</div>
     </div>
-    <button class="btn btn-sm btn-darshan" onclick="openAddModal()">
-      <i data-lucide="plus" style="width:14px;height:14px;"></i> Add
-    </button>
-  </div>
-
-  <div class="darshan-tabs">
-    <div class="darshan-tab active-mom" id="tab-mom" onclick="switchDarshanTab('mom')">
-      🌸 Mom
-    </div>
-    <div class="darshan-tab" id="tab-dad" onclick="switchDarshanTab('dad')">
-      🏔️ Dad
-    </div>
-  </div>
-
-  <div class="darshan-content">
-    <div id="darshan-med-list">
-      <!-- Admin medicine list -->
-    </div>
-  </div>
-</div>
-
-<!-- =================== ADD/EDIT MEDICINE MODAL =================== -->
-<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
-  <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-title">Add Medicine</div>
-      <button class="btn-icon" onclick="closeModalDirect()">
-        <i data-lucide="x" style="width:16px;height:16px;"></i>
+    <div style="display:flex;gap:8px;flex-shrink:0;">
+      <button class="btn btn-sm btn-ghost" onclick="openShareModal()" title="Share link">
+        <i data-lucide="share-2" style="width:14px;height:14px;"></i><span class="btn-lbl"> Share</span>
+      </button>
+      <button class="btn btn-sm btn-ds" onclick="openAddModal()">
+        <i data-lucide="plus" style="width:14px;height:14px;"></i><span class="btn-lbl"> Add</span>
       </button>
     </div>
+  </div>
 
-    <div class="form-group">
-      <label class="form-label">For</label>
-      <select class="form-input" id="med-person">
-        <option value="mom">🌸 Mom</option>
-        <option value="dad">🏔️ Dad</option>
-      </select>
+  <div class="ds-tabs">
+    <div class="ds-tab t-mom" id="dtab-mom" onclick="switchTab('mom')">🌸 Mom</div>
+    <div class="ds-tab"      id="dtab-dad" onclick="switchTab('dad')">🏔️ Dad</div>
+  </div>
+
+  <div class="ds-content">
+    <div id="adm-list"></div>
+  </div>
+</div>
+
+<!-- ===== ADD / EDIT MODAL ===== -->
+<div class="overlay" id="overlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div class="modal-title" id="modal-title">Add Medicine</div>
+      <button class="btn-icon" onclick="closeModal()"><i data-lucide="x" style="width:15px;height:15px;"></i></button>
     </div>
 
-    <div class="form-group">
-      <label class="form-label">Medicine Name *</label>
-      <input type="text" class="form-input" id="med-name" placeholder="e.g. Metformin" />
+    <div class="fg">
+      <label class="fl">For</label>
+      <select class="fi" id="f-person"><option value="mom">🌸 Mom</option><option value="dad">🏔️ Dad</option></select>
     </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Dosage</label>
-        <input type="text" class="form-input" id="med-dosage" placeholder="e.g. 500mg" />
+    <div class="fg">
+      <label class="fl">Medicine Name *</label>
+      <input class="fi" id="f-name" placeholder="e.g. Metformin" />
+    </div>
+    <div class="f-row">
+      <div class="fg">
+        <label class="fl">Dosage</label>
+        <input class="fi" id="f-dosage" placeholder="e.g. 500mg" />
       </div>
-      <div class="form-group">
-        <label class="form-label">Frequency</label>
-        <select class="form-input" id="med-frequency">
+      <div class="fg">
+        <label class="fl">Frequency</label>
+        <select class="fi" id="f-freq">
           <option value="daily">Daily</option>
           <option value="twice">Twice daily</option>
           <option value="thrice">Thrice daily</option>
@@ -901,630 +567,568 @@
         </select>
       </div>
     </div>
-
-    <div class="form-group">
-      <label class="form-label">When to take</label>
-      <select class="form-input" id="med-meal">
+    <div class="fg">
+      <label class="fl">When to take</label>
+      <select class="fi" id="f-meal">
         <option value="before">Before Meal</option>
         <option value="after">After Meal</option>
         <option value="with">With Meal</option>
         <option value="anytime">Anytime</option>
       </select>
     </div>
-
-    <div class="form-group">
-      <label class="form-label">Time of Day</label>
-      <div class="checkbox-group" id="time-checkboxes">
-        <div class="checkbox-item" data-val="morning" onclick="toggleTime(this)">🌅 Morning</div>
-        <div class="checkbox-item" data-val="afternoon" onclick="toggleTime(this)">☀️ Afternoon</div>
-        <div class="checkbox-item" data-val="evening" onclick="toggleTime(this)">🌆 Evening</div>
-        <div class="checkbox-item" data-val="night" onclick="toggleTime(this)">🌙 Night</div>
+    <div class="fg">
+      <label class="fl">Time of Day</label>
+      <div class="cb-group" id="f-times">
+        <div class="cb-item" data-v="morning"   onclick="toggleCb(this)">🌅 Morning</div>
+        <div class="cb-item" data-v="afternoon" onclick="toggleCb(this)">☀️ Afternoon</div>
+        <div class="cb-item" data-v="evening"   onclick="toggleCb(this)">🌆 Evening</div>
+        <div class="cb-item" data-v="night"     onclick="toggleCb(this)">🌙 Night</div>
       </div>
     </div>
-
-    <div class="form-group">
-      <label class="form-label">Color</label>
-      <div class="color-picker-row" id="color-picker">
-        <div class="color-opt selected" data-color="#f472b6" style="background:#f472b6;" onclick="pickColor(this)"></div>
-        <div class="color-opt" data-color="#60a5fa" style="background:#60a5fa;" onclick="pickColor(this)"></div>
-        <div class="color-opt" data-color="#34d399" style="background:#34d399;" onclick="pickColor(this)"></div>
-        <div class="color-opt" data-color="#fbbf24" style="background:#fbbf24;" onclick="pickColor(this)"></div>
-        <div class="color-opt" data-color="#f87171" style="background:#f87171;" onclick="pickColor(this)"></div>
-        <div class="color-opt" data-color="#a78bfa" style="background:#a78bfa;" onclick="pickColor(this)"></div>
-        <div class="color-opt" data-color="#fb923c" style="background:#fb923c;" onclick="pickColor(this)"></div>
-        <div class="color-opt" data-color="#e879f9" style="background:#e879f9;" onclick="pickColor(this)"></div>
+    <div class="fg">
+      <label class="fl">Color</label>
+      <div class="clr-row" id="f-colors">
+        <div class="clr-opt on"  data-c="#f472b6" style="background:#f472b6" onclick="pickClr(this)"></div>
+        <div class="clr-opt"     data-c="#60a5fa" style="background:#60a5fa" onclick="pickClr(this)"></div>
+        <div class="clr-opt"     data-c="#34d399" style="background:#34d399" onclick="pickClr(this)"></div>
+        <div class="clr-opt"     data-c="#fbbf24" style="background:#fbbf24" onclick="pickClr(this)"></div>
+        <div class="clr-opt"     data-c="#f87171" style="background:#f87171" onclick="pickClr(this)"></div>
+        <div class="clr-opt"     data-c="#a78bfa" style="background:#a78bfa" onclick="pickClr(this)"></div>
+        <div class="clr-opt"     data-c="#fb923c" style="background:#fb923c" onclick="pickClr(this)"></div>
+        <div class="clr-opt"     data-c="#e879f9" style="background:#e879f9" onclick="pickClr(this)"></div>
       </div>
     </div>
-
-    <div class="form-group">
-      <label class="form-label">Notes (optional)</label>
-      <input type="text" class="form-input" id="med-notes" placeholder="e.g. Take with warm water" />
+    <div class="fg">
+      <label class="fl">Notes (optional)</label>
+      <input class="fi" id="f-notes" placeholder="e.g. Take with warm water" />
     </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Start Date</label>
-        <input type="date" class="form-input" id="med-start" />
+    <div class="f-row">
+      <div class="fg">
+        <label class="fl">Start Date</label>
+        <input type="date" class="fi" id="f-start" />
       </div>
-      <div class="form-group">
-        <label class="form-label">End Date (optional)</label>
-        <input type="date" class="form-input" id="med-end" />
+      <div class="fg">
+        <label class="fl">End Date (optional)</label>
+        <input type="date" class="fi" id="f-end" />
       </div>
     </div>
-
-    <div class="form-actions">
-      <button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button>
-      <button class="btn btn-darshan" onclick="saveMedicine()">
-        <i data-lucide="check" style="width:15px;height:15px;"></i>
-        Save Medicine
+    <div class="f-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-ds" onclick="saveMed()">
+        <i data-lucide="check" style="width:14px;height:14px;"></i> Save Medicine
       </button>
     </div>
   </div>
 </div>
 
-<!-- =================== TOAST CONTAINER =================== -->
-<div class="toast-container" id="toast-container"></div>
+<!-- ===== SHARE MODAL ===== -->
+<div class="overlay" id="share-overlay" onclick="shareOverlayClick(event)">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-hdr">
+      <div class="modal-title">📤 Share Medicines</div>
+      <button class="btn-icon" onclick="closeShareModal()"><i data-lucide="x" style="width:15px;height:15px;"></i></button>
+    </div>
+    <div class="share-box">
+      <div style="font-size:13px;font-weight:600;color:var(--ds);margin-bottom:10px;">
+        <i data-lucide="link" style="width:13px;height:13px;vertical-align:-2px;"></i>
+        Your share link
+      </div>
+      <textarea class="share-url" id="share-url-text" readonly onclick="this.select()"></textarea>
+      <button class="btn btn-ds" style="width:100%;margin-top:10px;" onclick="copyShareLink()">
+        <i data-lucide="copy" style="width:14px;height:14px;"></i>
+        <span id="copy-btn-txt">Copy Link</span>
+      </button>
+    </div>
+    <p class="share-hint">
+      Share this link via <b>WhatsApp, SMS, or any app</b>.<br>
+      When Mom or Dad opens it, their medicine list updates automatically.<br><br>
+      🔄 <b>Updated medicines?</b> Generate and share a fresh link again.
+    </p>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
 
 <script>
-// =============================================
-// DATA MANAGEMENT
-// =============================================
-const STORAGE_MEDICINES = 'family_medicines';
-const STORAGE_TRACKING = 'family_tracking';
+// ── DATA ──────────────────────────────────────────
+const SK_MED = 'fam_meds_v2', SK_TRK = 'fam_track_v2';
 
-function loadData() {
+function load() {
   try {
     return {
-      medicines: JSON.parse(localStorage.getItem(STORAGE_MEDICINES)) || { mom: [], dad: [] },
-      tracking: JSON.parse(localStorage.getItem(STORAGE_TRACKING)) || { mom: {}, dad: {} }
+      meds:  JSON.parse(localStorage.getItem(SK_MED))  || { mom:[], dad:[] },
+      track: JSON.parse(localStorage.getItem(SK_TRK)) || { mom:{}, dad:{} }
     };
-  } catch { return { medicines: { mom: [], dad: [] }, tracking: { mom: {}, dad: {} } }; }
+  } catch(e) { return { meds:{mom:[],dad:[]}, track:{mom:{},dad:{}} }; }
 }
-
-function saveData(data) {
-  localStorage.setItem(STORAGE_MEDICINES, JSON.stringify(data.medicines));
-  localStorage.setItem(STORAGE_TRACKING, JSON.stringify(data.tracking));
+function save() {
+  localStorage.setItem(SK_MED,  JSON.stringify(db.meds));
+  localStorage.setItem(SK_TRK, JSON.stringify(db.track));
 }
+let db = load();
 
-let appData = loadData();
+// ── STATE ─────────────────────────────────────────
+let person    = 'mom';
+let selDate   = new Date();
+let calY      = selDate.getFullYear();
+let calM      = selDate.getMonth();
+let editId    = null;
+let dTab      = 'mom';
+let selColor  = '#f472b6';
+let selTimes  = ['morning'];
 
-// =============================================
-// APP STATE
-// =============================================
-let currentPerson = 'mom'; // 'mom' or 'dad'
-let calViewYear = new Date().getFullYear();
-let calViewMonth = new Date().getMonth();
-let selectedDate = new Date();
-let editingMedId = null;
-let darshanTab = 'mom';
-
-// =============================================
-// VIEW ROUTING
-// =============================================
+// ── VIEWS ─────────────────────────────────────────
 function showView(id) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-  // scroll to top
-  document.getElementById(id).scrollTo(0, 0);
+  document.querySelectorAll('.view').forEach(v => {
+    v.classList.remove('active');
+  });
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  el.scrollTo(0, 0);
 }
 
-function goHome() {
-  showView('view-home');
-  updateHomeBadges();
-}
+function goHome() { showView('view-home'); refreshBadges(); }
 
-function openPerson(person) {
-  currentPerson = person;
-  selectedDate = new Date();
-  calViewYear = selectedDate.getFullYear();
-  calViewMonth = selectedDate.getMonth();
+function openPerson(p) {
+  person  = p;
+  selDate = new Date();
+  calY    = selDate.getFullYear();
+  calM    = selDate.getMonth();
 
-  const topbar = document.getElementById('person-topbar');
-  topbar.className = `topbar topbar-${person}`;
+  const tb = document.getElementById('p-topbar');
+  tb.className = 'topbar tb-' + p;
 
-  const view = document.getElementById('view-person');
-  view.className = `view active theme-${person}`;
+  const vw = document.getElementById('view-person');
+  vw.className = 'view theme-' + p;
 
-  document.getElementById('person-title').textContent = person === 'mom' ? '🌸 Mom' : '🏔️ Dad';
+  document.getElementById('p-title').textContent = p === 'mom' ? '🌸 Mom' : '🏔️ Dad';
 
-  renderPersonView();
+  renderPerson();
   showView('view-person');
 }
 
 function openDarshan() {
-  darshanTab = 'mom';
-  updateDarshanTabs();
-  renderDarshanList();
+  dTab = 'mom';
+  renderDarshanTabs();
+  renderAdmList();
   showView('view-darshan');
 }
 
-// =============================================
-// DATE UTILS
-// =============================================
-function dateKey(d) {
+// ── UTILS ─────────────────────────────────────────
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const T_LABEL = { morning:'Morning', afternoon:'Afternoon', evening:'Evening', night:'Night', anytime:'Anytime' };
+const T_EMOJI = { morning:'🌅', afternoon:'☀️', evening:'🌆', night:'🌙', anytime:'🕐' };
+const MEAL_LABEL = { before:'Before Meal', after:'After Meal', with:'With Meal', anytime:'Anytime' };
+const MEAL_CLS   = { before:'tag-before',  after:'tag-after',  with:'tag-with',   anytime:'tag-any'  };
+const MEAL_ICON  = { before:'⏰', after:'🍽️', with:'🥗', anytime:'🕐' };
+const FREQ_TXT   = { daily:'Once daily', twice:'Twice daily', thrice:'3× daily', weekly:'Weekly', 'as-needed':'As needed' };
+const T_ICON     = { morning:'sunrise', afternoon:'sun', evening:'sunset', night:'moon', anytime:'clock' };
+
+function dk(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+function isToday(d)  { return dk(d) === dk(new Date()); }
+function isFuture(d) { const n=new Date(); n.setHours(0,0,0,0); const x=new Date(d); x.setHours(0,0,0,0); return x>n; }
 
-function formatDisplayDate(d) {
-  return d.toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-}
-
-function isToday(d) { return dateKey(d) === dateKey(new Date()); }
-function isFuture(d) { const n = new Date(); n.setHours(0,0,0,0); d = new Date(d); d.setHours(0,0,0,0); return d > n; }
-
-// =============================================
-// MEDICINE HELPERS
-// =============================================
-function getMedsForDate(person, date) {
-  const key = dateKey(date);
-  const meds = appData.medicines[person];
-  return meds.filter(m => {
+function getMeds(p, date) {
+  const key = dk(date);
+  return (db.meds[p] || []).filter(m => {
     if (m.startDate && key < m.startDate) return false;
-    if (m.endDate && key > m.endDate) return false;
+    if (m.endDate   && key > m.endDate)   return false;
     return true;
   });
 }
 
-function getTrackingForDate(person, date) {
-  return (appData.tracking[person][dateKey(date)] || {});
-}
+function getTrack(p, date) { return db.track[p][dk(date)] || {}; }
 
-function getDayCompletion(person, date) {
-  const meds = getMedsForDate(person, date);
+function dayComp(p, date) {
+  const meds = getMeds(p, date);
   if (!meds.length) return null;
-  const tracking = getTrackingForDate(person, date);
-  let total = 0, done = 0;
+  const trk = getTrack(p, date);
+  let total=0, done=0;
   meds.forEach(m => {
-    const times = m.timeOfDay && m.timeOfDay.length ? m.timeOfDay : ['anytime'];
-    times.forEach(t => {
-      total++;
-      if (tracking[m.id] && tracking[m.id][t]) done++;
-    });
+    const times = m.times && m.times.length ? m.times : ['anytime'];
+    times.forEach(t => { total++; if (trk[m.id]?.[t]) done++; });
   });
-  return { total, done, pct: total ? Math.round((done/total)*100) : 0 };
+  return { total, done, pct: total ? Math.round(done/total*100) : 0 };
 }
 
-function toggleDose(medId, timeSlot) {
-  const key = dateKey(selectedDate);
-  if (!appData.tracking[currentPerson][key]) appData.tracking[currentPerson][key] = {};
-  if (!appData.tracking[currentPerson][key][medId]) appData.tracking[currentPerson][key][medId] = {};
-  const cur = appData.tracking[currentPerson][key][medId][timeSlot];
-  appData.tracking[currentPerson][key][medId][timeSlot] = !cur;
-  saveData(appData);
-  renderMedList();
-  renderCalendar();
-  updateStats();
-}
-
-// =============================================
-// STREAK CALCULATION
-// =============================================
-function calcStreak(person) {
-  let streak = 0;
-  const d = new Date();
-  d.setHours(0,0,0,0);
-  while (true) {
-    const comp = getDayCompletion(person, d);
-    if (!comp || comp.pct < 100) break;
-    streak++;
-    d.setDate(d.getDate() - 1);
+function calcStreak(p) {
+  let s=0, d=new Date(); d.setHours(0,0,0,0);
+  while(true) {
+    const c = dayComp(p, d);
+    if (!c || c.pct < 100) break;
+    s++; d.setDate(d.getDate()-1);
   }
-  return streak;
+  return s;
 }
 
-// =============================================
-// RENDER: PERSON VIEW
-// =============================================
-function renderPersonView() {
+// ── PERSON VIEW ───────────────────────────────────
+function renderPerson() {
   renderCalendar();
   renderMedList();
   updateStats();
-  updateSelectedDateLabel();
+  updateDateLabel();
 }
 
-function updateSelectedDateLabel() {
-  document.getElementById('selected-date-label').textContent = isToday(selectedDate)
-    ? 'Today, ' + selectedDate.toLocaleDateString('en-IN', { day:'numeric', month:'long' })
-    : formatDisplayDate(selectedDate);
-  document.getElementById('person-date-title').textContent =
-    new Date().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+function updateDateLabel() {
+  document.getElementById('sel-date-lbl').textContent = isToday(selDate)
+    ? 'Today, ' + selDate.toLocaleDateString('en-IN',{day:'numeric',month:'long'})
+    : selDate.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('p-sub').textContent =
+    new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
 }
 
 function updateStats() {
-  const meds = appData.medicines[currentPerson];
-  document.getElementById('stat-total').textContent = meds.length;
+  document.getElementById('st-total').textContent  = (db.meds[person]||[]).length;
+  const td = dayComp(person, new Date());
+  document.getElementById('st-today').textContent  = td ? td.pct+'%' : '—';
+  const streak = calcStreak(person);
+  document.getElementById('st-streak').textContent = streak;
 
-  const comp = getDayCompletion(currentPerson, new Date());
-  document.getElementById('stat-today').textContent = comp ? comp.pct + '%' : '—';
-
-  const streak = calcStreak(currentPerson);
-  document.getElementById('stat-streak').textContent = streak;
-
-  const streakEl = document.getElementById('person-streak');
+  const sp = document.getElementById('p-streak');
   if (streak >= 2) {
-    streakEl.style.display = 'flex';
-    document.getElementById('streak-count').textContent = streak + ' day streak 🔥';
+    sp.style.display = 'flex';
+    document.getElementById('streak-txt').textContent = streak+' day streak 🔥';
   } else {
-    streakEl.style.display = 'none';
+    sp.style.display = 'none';
   }
 
-  // Day progress bar
-  const dc = getDayCompletion(currentPerson, selectedDate);
+  const dc = dayComp(person, selDate);
   const pct = dc ? dc.pct : 0;
-  document.getElementById('day-progress-pct').textContent = pct + '%';
-  document.getElementById('day-progress-bar').style.width = pct + '%';
+  document.getElementById('day-pct').textContent = pct+'%';
+  document.getElementById('day-prog').style.width = pct+'%';
 }
 
-// =============================================
-// RENDER: CALENDAR
-// =============================================
+// ── CALENDAR ──────────────────────────────────────
 function calNav(dir) {
-  calViewMonth += dir;
-  if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
-  if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+  calM += dir;
+  if (calM > 11) { calM=0; calY++; }
+  if (calM < 0)  { calM=11; calY--; }
   renderCalendar();
 }
 
 function renderCalendar() {
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  document.getElementById('cal-month-label').textContent = months[calViewMonth] + ' ' + calViewYear;
-
-  const firstDay = new Date(calViewYear, calViewMonth, 1).getDay();
-  const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
-  const today = new Date(); today.setHours(0,0,0,0);
-
+  document.getElementById('cal-month').textContent = MONTHS[calM]+' '+calY;
+  const first = new Date(calY, calM, 1).getDay();
+  const days  = new Date(calY, calM+1, 0).getDate();
+  const todKey = dk(new Date());
+  const selKey = dk(selDate);
   let html = '';
-  for (let i = 0; i < firstDay; i++) html += '<div class="cal-day cal-empty"></div>';
-
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = new Date(calViewYear, calViewMonth, d);
-    date.setHours(0,0,0,0);
-    const key = dateKey(date);
-    const selKey = dateKey(selectedDate);
-    const todKey = dateKey(today);
-
+  for (let i=0;i<first;i++) html += '<div class="cal-day cal-empty"></div>';
+  for (let d=1;d<=days;d++) {
+    const date = new Date(calY,calM,d);
+    const key  = dk(date);
     let cls = 'cal-day cal-none';
-    let dot = '';
-
-    if (!isFuture(date)) {
-      const comp = getDayCompletion(currentPerson, date);
-      if (comp && comp.total > 0) {
-        if (comp.pct === 100) cls = 'cal-day cal-full';
-        else if (comp.done > 0) cls = 'cal-day cal-partial';
-        else cls = 'cal-day cal-missed';
-      }
-    } else {
+    if (isFuture(date)) {
       cls = 'cal-day cal-future';
+    } else {
+      const c = dayComp(person, date);
+      if (c && c.total>0) {
+        if (c.pct===100)   cls = 'cal-day cal-full';
+        else if (c.done>0) cls = 'cal-day cal-part';
+        else               cls = 'cal-day cal-miss';
+      }
     }
-
-    if (key === todKey) cls += ' cal-today';
-    if (key === selKey) cls += ' cal-selected';
-
-    const clickable = !isFuture(date) ? `onclick="selectCalDay(${calViewYear},${calViewMonth},${d})"` : '';
-    html += `<div class="${cls}" ${clickable}>${d}</div>`;
+    if (key===todKey) cls += ' cal-today';
+    if (key===selKey) cls += ' cal-sel';
+    const click = !isFuture(date) ? `onclick="selDay(${calY},${calM},${d})"` : '';
+    html += `<div class="${cls}" ${click}>${d}</div>`;
   }
-
   document.getElementById('cal-days').innerHTML = html;
 }
 
-function selectCalDay(y, m, d) {
-  selectedDate = new Date(y, m, d);
-  updateSelectedDateLabel();
-  renderMedList();
-  updateStats();
-  renderCalendar();
+function selDay(y,m,d) {
+  selDate = new Date(y,m,d);
+  updateDateLabel(); renderMedList(); updateStats(); renderCalendar();
 }
 
-// =============================================
-// RENDER: MEDICINE LIST
-// =============================================
-const mealLabels = { before: 'Before Meal', after: 'After Meal', with: 'With Meal', anytime: 'Anytime' };
-const mealTagClass = { before: 'tag-before', after: 'tag-after', with: 'tag-with', anytime: 'tag-anytime' };
-const mealIcons = { before: '⏰', after: '🍽️', with: '🥗', anytime: '🕐' };
-const timeLabels = { morning:'Morning', afternoon:'Afternoon', evening:'Evening', night:'Night' };
-const timeEmojis = { morning:'🌅', afternoon:'☀️', evening:'🌆', night:'🌙' };
-
+// ── MED LIST ──────────────────────────────────────
 function renderMedList() {
-  const meds = getMedsForDate(currentPerson, selectedDate);
-  const tracking = getTrackingForDate(currentPerson, selectedDate);
-  const container = document.getElementById('med-list-container');
-  const isFut = isFuture(selectedDate);
-
+  const meds = getMeds(person, selDate);
+  const trk  = getTrack(person, selDate);
+  const fut  = isFuture(selDate);
+  const el   = document.getElementById('med-list');
   if (!meds.length) {
-    container.innerHTML = `
-      <div class="no-meds-banner">
-        <div style="font-size:36px;margin-bottom:10px;">💊</div>
-        <div style="font-size:16px;font-weight:700;margin-bottom:4px;color:var(--text);">No medicines for this day</div>
-        <div>Darshan can add medicines from the admin panel</div>
-      </div>`;
+    el.innerHTML = `<div class="no-meds"><div style="font-size:34px;margin-bottom:8px;">💊</div><strong style="color:var(--text);display:block;margin-bottom:4px;">No medicines for this day</strong>Darshan can add medicines from the admin panel</div>`;
     return;
   }
-
   let html = '';
   meds.forEach(med => {
-    const times = med.timeOfDay && med.timeOfDay.length ? med.timeOfDay : ['anytime'];
-    let dosesHtml = '';
+    const times = med.times && med.times.length ? med.times : ['anytime'];
+    let doses = '';
     times.forEach(t => {
-      const checked = tracking[med.id] && tracking[med.id][t];
-      const disabledAttr = isFut ? 'style="pointer-events:none;opacity:0.5;"' : '';
-      dosesHtml += `
-        <div class="dose-check ${checked ? 'checked' : ''}" ${disabledAttr}
-             onclick="${isFut ? '' : `toggleDose('${med.id}','${t}')`}">
-          <div class="dose-check-icon">
-            <i data-lucide="${checked ? 'check' : timeIconName(t)}" style="width:14px;height:14px;"></i>
-          </div>
-          <div class="dose-check-label">${timeEmojis[t] || ''} ${timeLabels[t] || t}</div>
-        </div>`;
+      const done = trk[med.id]?.[t];
+      const dis  = fut ? 'style="pointer-events:none;opacity:.45;"' : '';
+      const fn   = done ? 'check' : (T_ICON[t]||'clock');
+      doses += `<div class="dose-btn${done?' done':''}" ${dis} onclick="${fut?'':` toggleDose('${med.id}','${t}')`}">
+        <div class="dose-ico"><i data-lucide="${fn}" style="width:13px;height:13px;"></i></div>
+        <div class="dose-lbl">${T_EMOJI[t]||''} ${T_LABEL[t]||t}</div>
+      </div>`;
     });
-
-    const notesTag = med.notes ? `<span class="tag tag-note" title="${med.notes}"><i data-lucide="info" style="width:10px;height:10px;"></i>${med.notes}</span>` : '';
-    const freqLabel = freqText(med.frequency);
-
-    html += `
-      <div class="med-card">
-        <div class="med-card-top">
-          <div class="med-dot" style="background:${med.color || '#a78bfa'};box-shadow:0 0 8px ${med.color || '#a78bfa'}44;"></div>
-          <div class="med-info">
-            <div class="med-name">${med.name}</div>
-            <div class="med-dosage">${med.dosage || ''}${med.dosage && freqLabel ? ' · ' : ''}${freqLabel}</div>
-          </div>
+    const noteTag = med.notes
+      ? `<span class="tag tag-note" title="${med.notes}"><i data-lucide="info" style="width:9px;height:9px;"></i>${med.notes}</span>` : '';
+    html += `<div class="med-card">
+      <div class="med-top">
+        <div class="med-dot" style="background:${med.color};box-shadow:0 0 7px ${med.color}55;"></div>
+        <div>
+          <div class="med-name">${med.name}</div>
+          <div class="med-sub">${med.dosage||''}${med.dosage&&FREQ_TXT[med.frequency]?' · ':''}${FREQ_TXT[med.frequency]||''}</div>
         </div>
-        <div class="med-tags">
-          <span class="tag ${mealTagClass[med.meal] || 'tag-anytime'}">${mealIcons[med.meal] || ''} ${mealLabels[med.meal] || med.meal}</span>
-          ${notesTag}
-        </div>
-        <div class="dose-checks">${dosesHtml}</div>
-      </div>`;
+      </div>
+      <div class="med-tags">
+        <span class="tag ${MEAL_CLS[med.meal]||'tag-any'}">${MEAL_ICON[med.meal]||''} ${MEAL_LABEL[med.meal]||med.meal}</span>
+        ${noteTag}
+      </div>
+      <div class="dose-grid">${doses}</div>
+    </div>`;
   });
-
-  container.innerHTML = html;
-  lucide.createIcons();
+  el.innerHTML = html;
+  if (window.lucide) lucide.createIcons();
 }
 
-function timeIconName(t) {
-  return { morning:'sunrise', afternoon:'sun', evening:'sunset', night:'moon', anytime:'clock' }[t] || 'clock';
-}
-function freqText(f) {
-  return { daily:'Once daily', twice:'Twice daily', thrice:'3× daily', weekly:'Weekly', 'as-needed':'As needed' }[f] || f || '';
-}
-
-// =============================================
-// RENDER: HOME BADGES
-// =============================================
-function updateHomeBadges() {
-  document.getElementById('home-mom-count').textContent = appData.medicines.mom.length + ' medicine' + (appData.medicines.mom.length !== 1 ? 's' : '');
-  document.getElementById('home-dad-count').textContent = appData.medicines.dad.length + ' medicine' + (appData.medicines.dad.length !== 1 ? 's' : '');
+function toggleDose(medId, slot) {
+  const key = dk(selDate);
+  if (!db.track[person][key])        db.track[person][key]       = {};
+  if (!db.track[person][key][medId]) db.track[person][key][medId] = {};
+  db.track[person][key][medId][slot] = !db.track[person][key][medId][slot];
+  save();
+  renderMedList(); renderCalendar(); updateStats();
 }
 
-// =============================================
-// DARSHAN ADMIN
-// =============================================
-function switchDarshanTab(person) {
-  darshanTab = person;
-  updateDarshanTabs();
-  renderDarshanList();
+// ── HOME BADGES ───────────────────────────────────
+function refreshBadges() {
+  const mc = (db.meds.mom||[]).length, dc = (db.meds.dad||[]).length;
+  document.getElementById('hbadge-mom').textContent = mc+' medicine'+(mc!==1?'s':'');
+  document.getElementById('hbadge-dad').textContent = dc+' medicine'+(dc!==1?'s':'');
 }
 
-function updateDarshanTabs() {
-  document.getElementById('tab-mom').className = 'darshan-tab' + (darshanTab === 'mom' ? ' active-mom' : '');
-  document.getElementById('tab-dad').className = 'darshan-tab' + (darshanTab === 'dad' ? ' active-dad' : '');
+// ── DARSHAN ADMIN ─────────────────────────────────
+function switchTab(p) {
+  dTab = p;
+  renderDarshanTabs();
+  renderAdmList();
 }
 
-function renderDarshanList() {
-  const meds = appData.medicines[darshanTab];
-  const container = document.getElementById('darshan-med-list');
+function renderDarshanTabs() {
+  document.getElementById('dtab-mom').className = 'ds-tab' + (dTab==='mom' ? ' t-mom' : '');
+  document.getElementById('dtab-dad').className = 'ds-tab' + (dTab==='dad' ? ' t-dad' : '');
+}
 
+function renderAdmList() {
+  const meds = db.meds[dTab] || [];
+  const el   = document.getElementById('adm-list');
   if (!meds.length) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <i data-lucide="pill" style="width:48px;height:48px;display:block;margin:0 auto 12px;"></i>
-        <h3>No medicines added yet</h3>
-        <p>Tap "+ Add" to add ${darshanTab === 'mom' ? "mom's" : "dad's"} first medicine</p>
-      </div>`;
-    lucide.createIcons();
+    el.innerHTML = `<div class="empty-state">
+      <i data-lucide="pill" style="width:44px;height:44px;display:block;margin:0 auto;"></i>
+      <h3>No medicines yet</h3>
+      <p>Tap "+ Add" above to add ${dTab==='mom'?"mom's":"dad's"} first medicine</p>
+    </div>`;
+    if (window.lucide) lucide.createIcons();
     return;
   }
-
   let html = '';
   meds.forEach(med => {
-    const times = med.timeOfDay && med.timeOfDay.length ? med.timeOfDay.map(t => timeEmojis[t] + ' ' + timeLabels[t]).join(', ') : 'Any time';
-    html += `
-      <div class="admin-med-card">
-        <div class="med-dot" style="background:${med.color};box-shadow:0 0 8px ${med.color}44;width:12px;height:12px;margin-top:4px;flex-shrink:0;border-radius:50%;"></div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:700;font-size:15px;margin-bottom:3px;">${med.name}</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">${med.dosage || 'No dosage'} · ${freqText(med.frequency)}</div>
-          <div style="display:flex;flex-wrap:wrap;gap:5px;">
-            <span class="tag ${mealTagClass[med.meal] || 'tag-anytime'}" style="font-size:10px;">${mealIcons[med.meal] || ''} ${mealLabels[med.meal]}</span>
-            <span class="tag tag-time" style="font-size:10px;">${times}</span>
-            ${med.startDate ? `<span class="tag tag-time" style="font-size:10px;"><i data-lucide="calendar" style="width:9px;height:9px;"></i> From ${med.startDate}</span>` : ''}
-          </div>
-          ${med.notes ? `<div style="font-size:12px;color:var(--text-muted);margin-top:5px;">📝 ${med.notes}</div>` : ''}
+    const times = (med.times||[]).map(t=>(T_EMOJI[t]||'')+' '+T_LABEL[t]).join(', ') || 'Anytime';
+    html += `<div class="adm-card">
+      <div style="width:11px;height:11px;border-radius:50%;background:${med.color};box-shadow:0 0 7px ${med.color}55;flex-shrink:0;margin-top:4px;"></div>
+      <div class="adm-info">
+        <div class="adm-name">${med.name}</div>
+        <div class="adm-sub">${med.dosage||'No dosage'} · ${FREQ_TXT[med.frequency]||med.frequency||''}</div>
+        <div class="adm-tags">
+          <span class="tag ${MEAL_CLS[med.meal]||'tag-any'}" style="font-size:10px;">${MEAL_ICON[med.meal]||''} ${MEAL_LABEL[med.meal]||med.meal}</span>
+          <span class="tag tag-time" style="font-size:10px;">${times}</span>
+          ${med.startDate?`<span class="tag tag-time" style="font-size:10px;">From ${med.startDate}</span>`:''}
         </div>
-        <div class="admin-med-actions">
-          <button class="btn-icon" onclick="editMedicine('${med.id}','${darshanTab}')">
-            <i data-lucide="edit-2" style="width:14px;height:14px;"></i>
-          </button>
-          <button class="btn-icon" onclick="deleteMedicine('${med.id}','${darshanTab}')" style="color:var(--danger);">
-            <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
-          </button>
-        </div>
-      </div>`;
+        ${med.notes?`<div class="adm-note">📝 ${med.notes}</div>`:''}
+      </div>
+      <div class="adm-actions">
+        <button class="btn-icon" onclick="editMed('${med.id}','${dTab}')">
+          <i data-lucide="edit-2" style="width:13px;height:13px;"></i>
+        </button>
+        <button class="btn-icon" style="color:var(--red);" onclick="delMed('${med.id}','${dTab}')">
+          <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+        </button>
+      </div>
+    </div>`;
   });
-
-  container.innerHTML = html;
-  lucide.createIcons();
+  el.innerHTML = html;
+  if (window.lucide) lucide.createIcons();
 }
 
-// =============================================
-// MODAL: ADD / EDIT MEDICINE
-// =============================================
-let selectedColor = '#f472b6';
-let selectedTimes = [];
-
+// ── MODAL ─────────────────────────────────────────
 function openAddModal() {
-  editingMedId = null;
+  editId   = null;
+  selColor = '#f472b6';
+  selTimes = ['morning'];
   document.getElementById('modal-title').textContent = 'Add Medicine';
-  document.getElementById('med-person').value = darshanTab;
-  document.getElementById('med-name').value = '';
-  document.getElementById('med-dosage').value = '';
-  document.getElementById('med-frequency').value = 'daily';
-  document.getElementById('med-meal').value = 'after';
-  document.getElementById('med-notes').value = '';
-  document.getElementById('med-start').value = dateKey(new Date());
-  document.getElementById('med-end').value = '';
-  selectedColor = '#f472b6';
-  selectedTimes = ['morning'];
-  updateColorPicker();
-  updateTimeCheckboxes();
-  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('f-person').value  = dTab;
+  document.getElementById('f-name').value    = '';
+  document.getElementById('f-dosage').value  = '';
+  document.getElementById('f-freq').value    = 'daily';
+  document.getElementById('f-meal').value    = 'after';
+  document.getElementById('f-notes').value   = '';
+  document.getElementById('f-start').value   = dk(new Date());
+  document.getElementById('f-end').value     = '';
+  syncCbItems(); syncClrPicker();
+  document.getElementById('overlay').classList.add('open');
 }
 
-function editMedicine(id, person) {
-  const med = appData.medicines[person].find(m => m.id === id);
+function editMed(id, p) {
+  const med = (db.meds[p]||[]).find(m=>m.id===id);
   if (!med) return;
-  editingMedId = id;
+  editId   = id;
+  selColor = med.color || '#f472b6';
+  selTimes = med.times ? [...med.times] : ['morning'];
   document.getElementById('modal-title').textContent = 'Edit Medicine';
-  document.getElementById('med-person').value = person;
-  document.getElementById('med-name').value = med.name;
-  document.getElementById('med-dosage').value = med.dosage || '';
-  document.getElementById('med-frequency').value = med.frequency || 'daily';
-  document.getElementById('med-meal').value = med.meal || 'after';
-  document.getElementById('med-notes').value = med.notes || '';
-  document.getElementById('med-start').value = med.startDate || '';
-  document.getElementById('med-end').value = med.endDate || '';
-  selectedColor = med.color || '#f472b6';
-  selectedTimes = med.timeOfDay ? [...med.timeOfDay] : ['morning'];
-  updateColorPicker();
-  updateTimeCheckboxes();
-  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('f-person').value  = p;
+  document.getElementById('f-name').value    = med.name;
+  document.getElementById('f-dosage').value  = med.dosage||'';
+  document.getElementById('f-freq').value    = med.frequency||'daily';
+  document.getElementById('f-meal').value    = med.meal||'after';
+  document.getElementById('f-notes').value   = med.notes||'';
+  document.getElementById('f-start').value   = med.startDate||'';
+  document.getElementById('f-end').value     = med.endDate||'';
+  syncCbItems(); syncClrPicker();
+  document.getElementById('overlay').classList.add('open');
 }
 
-function saveMedicine() {
-  const name = document.getElementById('med-name').value.trim();
-  if (!name) { toast('Please enter a medicine name', 'error'); return; }
-
-  const person = document.getElementById('med-person').value;
+function saveMed() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { showToast('Please enter a medicine name','err'); return; }
+  const p = document.getElementById('f-person').value;
   const med = {
-    id: editingMedId || 'med_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    id:        editId || 'med_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
     name,
-    dosage: document.getElementById('med-dosage').value.trim(),
-    frequency: document.getElementById('med-frequency').value,
-    meal: document.getElementById('med-meal').value,
-    timeOfDay: selectedTimes.length ? [...selectedTimes] : ['anytime'],
-    color: selectedColor,
-    notes: document.getElementById('med-notes').value.trim(),
-    startDate: document.getElementById('med-start').value || dateKey(new Date()),
-    endDate: document.getElementById('med-end').value || null,
+    dosage:    document.getElementById('f-dosage').value.trim(),
+    frequency: document.getElementById('f-freq').value,
+    meal:      document.getElementById('f-meal').value,
+    times:     selTimes.length ? [...selTimes] : ['anytime'],
+    color:     selColor,
+    notes:     document.getElementById('f-notes').value.trim(),
+    startDate: document.getElementById('f-start').value || dk(new Date()),
+    endDate:   document.getElementById('f-end').value   || null,
   };
 
-  if (editingMedId) {
-    const oldPerson = Object.keys(appData.medicines).find(p => appData.medicines[p].some(m => m.id === editingMedId));
-    if (oldPerson && oldPerson !== person) {
-      appData.medicines[oldPerson] = appData.medicines[oldPerson].filter(m => m.id !== editingMedId);
-    }
-    const idx = appData.medicines[person].findIndex(m => m.id === editingMedId);
-    if (idx >= 0) appData.medicines[person][idx] = med;
-    else appData.medicines[person].push(med);
-    toast('Medicine updated!', 'success');
+  if (editId) {
+    const oldP = Object.keys(db.meds).find(k=>(db.meds[k]||[]).some(m=>m.id===editId));
+    if (oldP && oldP!==p) db.meds[oldP] = db.meds[oldP].filter(m=>m.id!==editId);
+    const idx = (db.meds[p]||[]).findIndex(m=>m.id===editId);
+    if (idx>=0) db.meds[p][idx]=med; else db.meds[p].push(med);
+    showToast('Medicine updated!','ok');
   } else {
-    appData.medicines[person].push(med);
-    toast('Medicine added!', 'success');
+    if (!db.meds[p]) db.meds[p]=[];
+    db.meds[p].push(med);
+    showToast('Medicine added!','ok');
   }
-
-  saveData(appData);
-  closeModalDirect();
-  renderDarshanList();
-  updateHomeBadges();
+  save(); closeModal(); renderAdmList(); refreshBadges();
 }
 
-function deleteMedicine(id, person) {
-  if (!confirm('Delete this medicine? Tracking history will be kept.')) return;
-  appData.medicines[person] = appData.medicines[person].filter(m => m.id !== id);
-  saveData(appData);
-  renderDarshanList();
-  updateHomeBadges();
-  toast('Medicine deleted', 'info');
+function delMed(id, p) {
+  if (!confirm('Delete this medicine?')) return;
+  db.meds[p] = (db.meds[p]||[]).filter(m=>m.id!==id);
+  save(); renderAdmList(); refreshBadges();
+  showToast('Medicine deleted','inf');
 }
 
-function toggleTime(el) {
-  const val = el.dataset.val;
-  if (selectedTimes.includes(val)) {
-    selectedTimes = selectedTimes.filter(t => t !== val);
-    el.classList.remove('active');
+function toggleCb(el) {
+  const v = el.dataset.v;
+  if (selTimes.includes(v)) { selTimes = selTimes.filter(t=>t!==v); el.classList.remove('on'); }
+  else { selTimes.push(v); el.classList.add('on'); }
+}
+function pickClr(el) { selColor = el.dataset.c; syncClrPicker(); }
+function syncCbItems()    { document.querySelectorAll('.cb-item').forEach(e=>e.classList.toggle('on',selTimes.includes(e.dataset.v))); }
+function syncClrPicker()  { document.querySelectorAll('.clr-opt').forEach(e=>e.classList.toggle('on',e.dataset.c===selColor)); }
+function overlayClick(e)  { if (e.target===document.getElementById('overlay')) closeModal(); }
+function closeModal()     { document.getElementById('overlay').classList.remove('open'); }
+
+// ── SHARE ─────────────────────────────────────────
+function openShareModal() {
+  const payload = JSON.stringify(db.meds);
+  const encoded = btoa(unescape(encodeURIComponent(payload)));
+  const base    = location.href.split('#')[0].split('?')[0];
+  const url     = base + '#meds=' + encoded;
+  document.getElementById('share-url-text').value = url;
+  document.getElementById('copy-btn-txt').textContent = 'Copy Link';
+  document.getElementById('share-overlay').classList.add('open');
+}
+function closeShareModal()      { document.getElementById('share-overlay').classList.remove('open'); }
+function shareOverlayClick(e)   { if (e.target===document.getElementById('share-overlay')) closeShareModal(); }
+
+function copyShareLink() {
+  const url = document.getElementById('share-url-text').value;
+  const btn = document.getElementById('copy-btn-txt');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      btn.textContent = '✓ Copied!';
+      showToast('Link copied — share it via WhatsApp or SMS', 'ok');
+      setTimeout(() => btn.textContent = 'Copy Link', 2500);
+    }).catch(() => fallbackCopy(url, btn));
   } else {
-    selectedTimes.push(val);
-    el.classList.add('active');
+    fallbackCopy(url, btn);
+  }
+}
+function fallbackCopy(url, btn) {
+  const ta = document.getElementById('share-url-text');
+  ta.select(); ta.setSelectionRange(0, 99999);
+  try { document.execCommand('copy'); btn.textContent = '✓ Copied!'; showToast('Link copied!', 'ok'); }
+  catch(e) { showToast('Long-press the link above to copy', 'inf'); }
+  setTimeout(() => { if(btn) btn.textContent = 'Copy Link'; }, 2500);
+}
+
+function checkImport() {
+  const hash = location.hash;
+  if (!hash.startsWith('#meds=')) return;
+  try {
+    const meds = JSON.parse(decodeURIComponent(escape(atob(hash.slice(6)))));
+    if (!meds || typeof meds !== 'object') return;
+    // Merge: keep local tracking, update medicine list
+    db.meds = { mom: meds.mom || [], dad: meds.dad || [] };
+    save();
+    history.replaceState(null, '', location.pathname + location.search);
+    showToast('✓ Medicines synced from Darshan', 'ok');
+    refreshBadges();
+  } catch(e) {
+    console.warn('Import failed', e);
   }
 }
 
-function pickColor(el) {
-  selectedColor = el.dataset.color;
-  updateColorPicker();
-}
-
-function updateColorPicker() {
-  document.querySelectorAll('.color-opt').forEach(el => {
-    el.classList.toggle('selected', el.dataset.color === selectedColor);
-  });
-}
-
-function updateTimeCheckboxes() {
-  document.querySelectorAll('.checkbox-item').forEach(el => {
-    el.classList.toggle('active', selectedTimes.includes(el.dataset.val));
-  });
-}
-
-function closeModal(e) {
-  if (e.target === document.getElementById('modal-overlay')) closeModalDirect();
-}
-function closeModalDirect() {
-  document.getElementById('modal-overlay').classList.remove('open');
-}
-
-// =============================================
-// TOAST
-// =============================================
-function toast(msg, type = 'info') {
-  const icons = { success: 'check-circle', error: 'alert-circle', info: 'info' };
+// ── TOAST ─────────────────────────────────────────
+function showToast(msg, type='inf') {
+  const icons = { ok:'check-circle', err:'alert-circle', inf:'info' };
   const t = document.createElement('div');
-  t.className = `toast toast-${type}`;
-  t.innerHTML = `<i data-lucide="${icons[type]}" style="width:16px;height:16px;flex-shrink:0;"></i>${msg}`;
-  document.getElementById('toast-container').appendChild(t);
-  lucide.createIcons({ nodes: [t] });
-  requestAnimationFrame(() => t.classList.add('show'));
-  setTimeout(() => {
-    t.classList.remove('show');
-    setTimeout(() => t.remove(), 400);
-  }, 2800);
+  t.className = `toast toast-${type==='ok'?'ok':type==='err'?'err':'inf'}`;
+  t.innerHTML = `<i data-lucide="${icons[type]||'info'}" style="width:15px;height:15px;flex-shrink:0;"></i>${msg}`;
+  document.getElementById('toasts').appendChild(t);
+  if (window.lucide) lucide.createIcons({ nodes:[t] });
+  requestAnimationFrame(()=>t.classList.add('in'));
+  setTimeout(()=>{ t.classList.remove('in'); setTimeout(()=>t.remove(),380); }, 2800);
 }
 
-// =============================================
-// INIT
-// =============================================
-function init() {
-  lucide.createIcons();
-  updateHomeBadges();
+// ── INIT ──────────────────────────────────────────
+(function init() {
+  if (window.lucide) lucide.createIcons();
 
-  // Seed sample data if empty for demo
-  if (!appData.medicines.mom.length && !appData.medicines.dad.length) {
-    const today = dateKey(new Date());
-    appData.medicines.mom = [
-      { id:'med_m1', name:'Metformin', dosage:'500mg', frequency:'twice', meal:'after', timeOfDay:['morning','night'], color:'#f472b6', notes:'Take with warm water', startDate:today, endDate:null },
-      { id:'med_m2', name:'Vitamin D3', dosage:'1000 IU', frequency:'daily', meal:'after', timeOfDay:['morning'], color:'#fbbf24', notes:'', startDate:today, endDate:null },
-      { id:'med_m3', name:'Thyronorm', dosage:'50mcg', frequency:'daily', meal:'before', timeOfDay:['morning'], color:'#a78bfa', notes:'On empty stomach', startDate:today, endDate:null },
+  // auto-import medicines if URL contains share payload
+  checkImport();
+
+  // seed demo data if empty
+  if (!db.meds.mom.length && !db.meds.dad.length) {
+    const t = dk(new Date());
+    db.meds.mom = [
+      { id:'m1', name:'Metformin',    dosage:'500mg',   frequency:'twice',  meal:'after',  times:['morning','night'],   color:'#f472b6', notes:'Take with warm water',  startDate:t, endDate:null },
+      { id:'m2', name:'Vitamin D3',   dosage:'1000 IU', frequency:'daily',  meal:'after',  times:['morning'],           color:'#fbbf24', notes:'',                      startDate:t, endDate:null },
+      { id:'m3', name:'Thyronorm',    dosage:'50mcg',   frequency:'daily',  meal:'before', times:['morning'],           color:'#a78bfa', notes:'On empty stomach',       startDate:t, endDate:null },
     ];
-    appData.medicines.dad = [
-      { id:'med_d1', name:'Amlodipine', dosage:'5mg', frequency:'daily', meal:'after', timeOfDay:['morning'], color:'#60a5fa', notes:'For blood pressure', startDate:today, endDate:null },
-      { id:'med_d2', name:'Atorvastatin', dosage:'10mg', frequency:'daily', meal:'after', timeOfDay:['night'], color:'#34d399', notes:'', startDate:today, endDate:null },
-      { id:'med_d3', name:'Ecosprin', dosage:'75mg', frequency:'daily', meal:'after', timeOfDay:['morning'], color:'#fb923c', notes:'After breakfast', startDate:today, endDate:null },
+    db.meds.dad = [
+      { id:'d1', name:'Amlodipine',   dosage:'5mg',     frequency:'daily',  meal:'after',  times:['morning'],           color:'#60a5fa', notes:'For blood pressure',    startDate:t, endDate:null },
+      { id:'d2', name:'Atorvastatin', dosage:'10mg',    frequency:'daily',  meal:'after',  times:['night'],             color:'#34d399', notes:'',                      startDate:t, endDate:null },
+      { id:'d3', name:'Ecosprin',     dosage:'75mg',    frequency:'daily',  meal:'after',  times:['morning'],           color:'#fb923c', notes:'After breakfast',        startDate:t, endDate:null },
     ];
-    saveData(appData);
-    updateHomeBadges();
+    save();
   }
-}
-
-init();
+  refreshBadges();
+})();
 </script>
 </body>
 </html>
