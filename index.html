@@ -302,6 +302,20 @@ select.fi { cursor:pointer; background-image:url("data:image/svg+xml,%3Csvg xmln
 .clr-opt.on { border-color:#fff; transform:scale(1.18); }
 .clr-opt:hover { transform:scale(1.1); }
 
+/* ===== SHARE DIALOG ===== */
+.share-box {
+  background: rgba(52,211,153,.07); border:1.5px solid rgba(52,211,153,.25);
+  border-radius:14px; padding:16px; margin-bottom:4px;
+}
+.share-url {
+  width:100%; background:rgba(0,0,0,.3); border:1.5px solid var(--border);
+  border-radius:10px; padding:10px 12px; color:var(--text); font-size:12px;
+  font-family:monospace; resize:none; outline:none; word-break:break-all;
+  line-height:1.5; min-height:70px;
+}
+.share-hint { font-size:12px; color:var(--muted); margin-top:10px; line-height:1.5; }
+.share-hint b { color:var(--text); }
+
 /* ===== TOAST ===== */
 .toast-wrap { position:fixed; bottom:20px; right:16px; z-index:9999; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
 .toast {
@@ -501,9 +515,14 @@ select.fi { cursor:pointer; background-image:url("data:image/svg+xml,%3Csvg xmln
       <div class="topbar-title">Darshan's Panel</div>
       <div class="topbar-sub">Manage family medicines</div>
     </div>
-    <button class="btn btn-sm btn-ds" onclick="openAddModal()">
-      <i data-lucide="plus" style="width:14px;height:14px;"></i><span class="btn-lbl"> Add</span>
-    </button>
+    <div style="display:flex;gap:8px;flex-shrink:0;">
+      <button class="btn btn-sm btn-ghost" onclick="openShareModal()" title="Share link">
+        <i data-lucide="share-2" style="width:14px;height:14px;"></i><span class="btn-lbl"> Share</span>
+      </button>
+      <button class="btn btn-sm btn-ds" onclick="openAddModal()">
+        <i data-lucide="plus" style="width:14px;height:14px;"></i><span class="btn-lbl"> Add</span>
+      </button>
+    </div>
   </div>
 
   <div class="ds-tabs">
@@ -599,6 +618,32 @@ select.fi { cursor:pointer; background-image:url("data:image/svg+xml,%3Csvg xmln
         <i data-lucide="check" style="width:14px;height:14px;"></i> Save Medicine
       </button>
     </div>
+  </div>
+</div>
+
+<!-- ===== SHARE MODAL ===== -->
+<div class="overlay" id="share-overlay" onclick="shareOverlayClick(event)">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-hdr">
+      <div class="modal-title">📤 Share Medicines</div>
+      <button class="btn-icon" onclick="closeShareModal()"><i data-lucide="x" style="width:15px;height:15px;"></i></button>
+    </div>
+    <div class="share-box">
+      <div style="font-size:13px;font-weight:600;color:var(--ds);margin-bottom:10px;">
+        <i data-lucide="link" style="width:13px;height:13px;vertical-align:-2px;"></i>
+        Your share link
+      </div>
+      <textarea class="share-url" id="share-url-text" readonly onclick="this.select()"></textarea>
+      <button class="btn btn-ds" style="width:100%;margin-top:10px;" onclick="copyShareLink()">
+        <i data-lucide="copy" style="width:14px;height:14px;"></i>
+        <span id="copy-btn-txt">Copy Link</span>
+      </button>
+    </div>
+    <p class="share-hint">
+      Share this link via <b>WhatsApp, SMS, or any app</b>.<br>
+      When Mom or Dad opens it, their medicine list updates automatically.<br><br>
+      🔄 <b>Updated medicines?</b> Generate and share a fresh link again.
+    </p>
   </div>
 </div>
 
@@ -997,6 +1042,57 @@ function syncClrPicker()  { document.querySelectorAll('.clr-opt').forEach(e=>e.c
 function overlayClick(e)  { if (e.target===document.getElementById('overlay')) closeModal(); }
 function closeModal()     { document.getElementById('overlay').classList.remove('open'); }
 
+// ── SHARE ─────────────────────────────────────────
+function openShareModal() {
+  const payload = JSON.stringify(db.meds);
+  const encoded = btoa(unescape(encodeURIComponent(payload)));
+  const base    = location.href.split('#')[0].split('?')[0];
+  const url     = base + '#meds=' + encoded;
+  document.getElementById('share-url-text').value = url;
+  document.getElementById('copy-btn-txt').textContent = 'Copy Link';
+  document.getElementById('share-overlay').classList.add('open');
+}
+function closeShareModal()      { document.getElementById('share-overlay').classList.remove('open'); }
+function shareOverlayClick(e)   { if (e.target===document.getElementById('share-overlay')) closeShareModal(); }
+
+function copyShareLink() {
+  const url = document.getElementById('share-url-text').value;
+  const btn = document.getElementById('copy-btn-txt');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => {
+      btn.textContent = '✓ Copied!';
+      showToast('Link copied — share it via WhatsApp or SMS', 'ok');
+      setTimeout(() => btn.textContent = 'Copy Link', 2500);
+    }).catch(() => fallbackCopy(url, btn));
+  } else {
+    fallbackCopy(url, btn);
+  }
+}
+function fallbackCopy(url, btn) {
+  const ta = document.getElementById('share-url-text');
+  ta.select(); ta.setSelectionRange(0, 99999);
+  try { document.execCommand('copy'); btn.textContent = '✓ Copied!'; showToast('Link copied!', 'ok'); }
+  catch(e) { showToast('Long-press the link above to copy', 'inf'); }
+  setTimeout(() => { if(btn) btn.textContent = 'Copy Link'; }, 2500);
+}
+
+function checkImport() {
+  const hash = location.hash;
+  if (!hash.startsWith('#meds=')) return;
+  try {
+    const meds = JSON.parse(decodeURIComponent(escape(atob(hash.slice(6)))));
+    if (!meds || typeof meds !== 'object') return;
+    // Merge: keep local tracking, update medicine list
+    db.meds = { mom: meds.mom || [], dad: meds.dad || [] };
+    save();
+    history.replaceState(null, '', location.pathname + location.search);
+    showToast('✓ Medicines synced from Darshan', 'ok');
+    refreshBadges();
+  } catch(e) {
+    console.warn('Import failed', e);
+  }
+}
+
 // ── TOAST ─────────────────────────────────────────
 function showToast(msg, type='inf') {
   const icons = { ok:'check-circle', err:'alert-circle', inf:'info' };
@@ -1012,6 +1108,9 @@ function showToast(msg, type='inf') {
 // ── INIT ──────────────────────────────────────────
 (function init() {
   if (window.lucide) lucide.createIcons();
+
+  // auto-import medicines if URL contains share payload
+  checkImport();
 
   // seed demo data if empty
   if (!db.meds.mom.length && !db.meds.dad.length) {
