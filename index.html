@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Family Medicine Tracker</title>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+<style>
+  :root {
+    --bg: #0f0f1a;
+    --bg2: #16162a;
+    --card: rgba(255,255,255,0.05);
+    --card-hover: rgba(255,255,255,0.08);
+    --border: rgba(255,255,255,0.1);
+    --text: #f0f0ff;
+    --text-muted: rgba(240,240,255,0.55);
+    --mom: #f472b6;
+    --mom2: #ec4899;
+    --mom-glow: rgba(244,114,182,0.25);
+    --dad: #60a5fa;
+    --dad2: #3b82f6;
+    --dad-glow: rgba(96,165,250,0.25);
+    --darshan: #34d399;
+    --darshan2: #10b981;
+    --darshan-glow: rgba(52,211,153,0.25);
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --radius: 18px;
+    --radius-sm: 10px;
+    --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* Background orbs */
+  body::before, body::after {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::before {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(244,114,182,0.12), transparent 70%);
+    top: -100px; left: -100px;
+  }
+  body::after {
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(96,165,250,0.12), transparent 70%);
+    bottom: -100px; right: -100px;
+  }
+
+  /* ---- VIEWS ---- */
+  .view {
+    position: fixed; inset: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(20px) scale(0.98);
+    transition: opacity var(--transition), transform var(--transition);
+    z-index: 1;
+  }
+  .view.active {
+    opacity: 1;
+    pointer-events: all;
+    transform: translateY(0) scale(1);
+  }
+
+  /* ---- GLASS CARD ---- */
+  .glass {
+    background: var(--card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+  .glass-sm {
+    background: var(--card);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+
+  /* ---- BUTTONS ---- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 12px 22px;
+    border: none; border-radius: var(--radius-sm);
+    font-size: 15px; font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    text-decoration: none;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn-ghost {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { background: var(--card-hover); }
+  .btn-mom {
+    background: linear-gradient(135deg, var(--mom), var(--mom2));
+    color: #fff;
+    box-shadow: 0 4px 20px var(--mom-glow);
+  }
+  .btn-mom:hover { box-shadow: 0 6px 28px rgba(244,114,182,0.4); transform: translateY(-1px); }
+  .btn-dad {
+    background: linear-gradient(135deg, var(--dad), var(--dad2));
+    color: #fff;
+    box-shadow: 0 4px 20px var(--dad-glow);
+  }
+  .btn-dad:hover { box-shadow: 0 6px 28px rgba(96,165,250,0.4); transform: translateY(-1px); }
+  .btn-darshan {
+    background: linear-gradient(135deg, var(--darshan), var(--darshan2));
+    color: #fff;
+    box-shadow: 0 4px 20px var(--darshan-glow);
+  }
+  .btn-darshan:hover { box-shadow: 0 6px 28px rgba(52,211,153,0.4); transform: translateY(-1px); }
+  .btn-sm { padding: 8px 14px; font-size: 13px; }
+  .btn-icon {
+    width: 38px; height: 38px; padding: 0; border-radius: 50%;
+    background: var(--card); border: 1px solid var(--border); color: var(--text);
+    cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+    transition: all var(--transition);
+  }
+  .btn-icon:hover { background: var(--card-hover); }
+
+  /* ---- HOME VIEW ---- */
+  #view-home {
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a0f2e 50%, #0f1a2e 100%);
+    align-items: center; justify-content: center;
+    padding: 40px 20px;
+    gap: 0;
+  }
+  .home-hero {
+    text-align: center;
+    margin-bottom: 60px;
+  }
+  .home-logo {
+    width: 80px; height: 80px;
+    background: linear-gradient(135deg, #f472b6, #60a5fa);
+    border-radius: 24px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 24px;
+    box-shadow: 0 8px 32px rgba(244,114,182,0.3);
+  }
+  .home-logo i { color: white; }
+  .home-title {
+    font-size: clamp(28px, 6vw, 42px);
+    font-weight: 800;
+    background: linear-gradient(135deg, #f0f0ff, #a78bfa, #60a5fa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.2;
+    margin-bottom: 10px;
+  }
+  .home-subtitle {
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-bottom: 0;
+  }
+  .home-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 380px;
+  }
+  .home-card {
+    padding: 28px 24px;
+    border-radius: 22px;
+    cursor: pointer;
+    transition: all var(--transition);
+    display: flex; align-items: center; gap: 20px;
+    border: 1px solid transparent;
+    position: relative;
+    overflow: hidden;
+  }
+  .home-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    opacity: 0;
+    transition: opacity var(--transition);
+  }
+  .home-card:hover::before { opacity: 1; }
+  .home-card:hover { transform: translateY(-3px); }
+  .home-card:active { transform: scale(0.98); }
+  .home-card-mom {
+    background: rgba(244,114,182,0.08);
+    border-color: rgba(244,114,182,0.2);
+    box-shadow: 0 4px 24px rgba(244,114,182,0.1);
+  }
+  .home-card-mom:hover {
+    background: rgba(244,114,182,0.14);
+    box-shadow: 0 8px 32px rgba(244,114,182,0.2);
+    border-color: rgba(244,114,182,0.35);
+  }
+  .home-card-dad {
+    background: rgba(96,165,250,0.08);
+    border-color: rgba(96,165,250,0.2);
+    box-shadow: 0 4px 24px rgba(96,165,250,0.1);
+  }
+  .home-card-dad:hover {
+    background: rgba(96,165,250,0.14);
+    box-shadow: 0 8px 32px rgba(96,165,250,0.2);
+    border-color: rgba(96,165,250,0.35);
+  }
+  .home-card-darshan {
+    background: rgba(52,211,153,0.08);
+    border-color: rgba(52,211,153,0.2);
+    box-shadow: 0 4px 24px rgba(52,211,153,0.1);
+  }
+  .home-card-darshan:hover {
+    background: rgba(52,211,153,0.14);
+    box-shadow: 0 8px 32px rgba(52,211,153,0.2);
+    border-color: rgba(52,211,153,0.35);
+  }
+  .home-card-icon {
+    width: 56px; height: 56px;
+    border-radius: 16px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 24px;
+  }
+  .home-card-mom .home-card-icon { background: linear-gradient(135deg,#f472b6,#ec4899); box-shadow: 0 4px 16px rgba(244,114,182,0.4); }
+  .home-card-dad .home-card-icon { background: linear-gradient(135deg,#60a5fa,#3b82f6); box-shadow: 0 4px 16px rgba(96,165,250,0.4); }
+  .home-card-darshan .home-card-icon { background: linear-gradient(135deg,#34d399,#10b981); box-shadow: 0 4px 16px rgba(52,211,153,0.4); }
+  .home-card-info h3 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .home-card-info p { font-size: 13px; color: var(--text-muted); }
+  .home-card-arrow {
+    margin-left: auto;
+    color: var(--text-muted);
+    transition: transform var(--transition);
+  }
+  .home-card:hover .home-card-arrow { transform: translateX(4px); color: var(--text); }
+  .home-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 4px 10px; border-radius: 20px;
+    font-size: 12px; font-weight: 600;
+    margin-top: 6px;
+  }
+  .badge-mom { background: rgba(244,114,182,0.15); color: var(--mom); border: 1px solid rgba(244,114,182,0.25); }
+  .badge-dad { background: rgba(96,165,250,0.15); color: var(--dad); border: 1px solid rgba(96,165,250,0.25); }
+  .badge-darshan { background: rgba(52,211,153,0.15); color: var(--darshan); border: 1px solid rgba(52,211,153,0.25); }
+
+  /* ---- TOPBAR ---- */
+  .topbar {
+    position: sticky; top: 0;
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 20px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+  }
+  .topbar-title { font-size: 18px; font-weight: 700; flex: 1; }
+  .topbar-subtitle { font-size: 13px; color: var(--text-muted); font-weight: 400; margin-top: 1px; }
+
+  /* ---- PERSON VIEW ---- */
+  .person-view-content {
+    padding: 20px;
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+    padding-bottom: 40px;
+  }
+
+  /* ---- STATS ROW ---- */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    padding: 16px;
+    border-radius: 14px;
+    text-align: center;
+  }
+  .stat-value { font-size: 26px; font-weight: 800; line-height: 1; }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  /* ---- SECTION HEADER ---- */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .section-title {
+    font-size: 15px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.8px;
+    color: var(--text-muted);
+  }
+
+  /* ---- CALENDAR ---- */
+  .calendar-wrap { margin-bottom: 24px; }
+  .cal-nav {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .cal-month { font-size: 17px; font-weight: 700; }
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+  }
+  .cal-day-label {
+    text-align: center;
+    font-size: 11px; font-weight: 600;
+    color: var(--text-muted);
+    padding: 4px 0;
+    text-transform: uppercase;
+  }
+  .cal-day {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition);
+    position: relative;
+    border: 1.5px solid transparent;
+  }
+  .cal-day:hover:not(.cal-empty):not(.cal-future) { transform: scale(1.08); z-index: 1; }
+  .cal-empty { cursor: default; }
+  .cal-future { opacity: 0.3; cursor: default; }
+  .cal-today { border-color: rgba(255,255,255,0.4) !important; }
+  .cal-selected { border-color: rgba(255,255,255,0.7) !important; }
+  .cal-none { background: rgba(255,255,255,0.04); color: var(--text-muted); }
+  .cal-full { background: rgba(74,222,128,0.2); color: #4ade80; }
+  .cal-partial { background: rgba(251,191,36,0.2); color: #fbbf24; }
+  .cal-missed { background: rgba(248,113,113,0.15); color: #f87171; }
+  .cal-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    position: absolute; bottom: 4px;
+  }
+
+  /* ---- TODAY SECTION ---- */
+  .today-date-label {
+    font-size: 22px; font-weight: 800;
+    margin-bottom: 16px;
+  }
+  .med-card {
+    padding: 18px;
+    margin-bottom: 12px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    transition: all var(--transition);
+  }
+  .med-card:hover { background: var(--card-hover); }
+  .med-card-top {
+    display: flex; align-items: flex-start; gap: 14px;
+    margin-bottom: 12px;
+  }
+  .med-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    flex-shrink: 0; margin-top: 3px;
+  }
+  .med-info { flex: 1; }
+  .med-name { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
+  .med-dosage { font-size: 13px; color: var(--text-muted); }
+  .med-tags {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin-bottom: 12px;
+  }
+  .tag {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .tag-before { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
+  .tag-after { background: rgba(74,222,128,0.12); color: #4ade80; border: 1px solid rgba(74,222,128,0.2); }
+  .tag-with { background: rgba(167,139,250,0.15); color: #a78bfa; border: 1px solid rgba(167,139,250,0.25); }
+  .tag-anytime { background: rgba(255,255,255,0.08); color: var(--text-muted); border: 1px solid var(--border); }
+  .tag-time { background: rgba(255,255,255,0.06); color: var(--text-muted); border: 1px solid var(--border); }
+  .tag-note { background: rgba(96,165,250,0.1); color: #60a5fa; border: 1px solid rgba(96,165,250,0.2); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dose-checks {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 8px;
+  }
+  .dose-check {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 6px;
+    padding: 10px 8px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all var(--transition);
+    border: 1.5px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    user-select: none;
+  }
+  .dose-check:hover { background: rgba(255,255,255,0.07); }
+  .dose-check.checked {
+    border-color: rgba(74,222,128,0.5);
+    background: rgba(74,222,128,0.1);
+  }
+  .dose-check-icon {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.06);
+    transition: all var(--transition);
+    font-size: 14px;
+  }
+  .dose-check.checked .dose-check-icon {
+    background: #4ade80;
+    color: #0f0f1a;
+  }
+  .dose-check-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+  .dose-check.checked .dose-check-label { color: #4ade80; }
+
+  .empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state i { margin-bottom: 16px; opacity: 0.4; }
+  .empty-state h3 { font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .empty-state p { font-size: 14px; }
+
+  /* ---- PROGRESS BAR ---- */
+  .progress-bar-wrap {
+    background: rgba(255,255,255,0.06);
+    border-radius: 20px;
+    height: 6px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 20px;
+    transition: width 0.6s ease;
+    background: linear-gradient(90deg, #4ade80, #22d3ee);
+  }
+
+  /* ---- DARSHAN VIEW ---- */
+  .darshan-tabs {
+    display: flex; gap: 10px;
+    padding: 16px 20px 0;
+    max-width: 600px; margin: 0 auto; width: 100%;
+  }
+  .darshan-tab {
+    flex: 1;
+    padding: 10px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--text-muted);
+    transition: all var(--transition);
+  }
+  .darshan-tab.active-mom {
+    border-color: rgba(244,114,182,0.5);
+    background: rgba(244,114,182,0.1);
+    color: var(--mom);
+  }
+  .darshan-tab.active-dad {
+    border-color: rgba(96,165,250,0.5);
+    background: rgba(96,165,250,0.1);
+    color: var(--dad);
+  }
+  .darshan-content {
+    padding: 20px;
+    max-width: 600px; margin: 0 auto; width: 100%;
+    padding-bottom: 40px;
+  }
+
+  /* ---- FORM ---- */
+  .add-form {
+    padding: 22px;
+    margin-bottom: 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--card);
+  }
+  .form-title {
+    font-size: 16px; font-weight: 700;
+    margin-bottom: 18px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .form-group { margin-bottom: 14px; }
+  .form-label {
+    display: block;
+    font-size: 12px; font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .form-input {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1.5px solid var(--border);
+    background: rgba(255,255,255,0.05);
+    color: var(--text);
+    font-size: 14px;
+    transition: border-color var(--transition);
+    outline: none;
+    font-family: inherit;
+  }
+  .form-input:focus { border-color: rgba(255,255,255,0.3); }
+  .form-input::placeholder { color: var(--text-muted); }
+  select.form-input { cursor: pointer; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-actions { display: flex; gap: 10px; margin-top: 6px; justify-content: flex-end; }
+
+  .checkbox-group {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .checkbox-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 12px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    transition: all var(--transition);
+    font-size: 13px; font-weight: 500;
+    user-select: none;
+  }
+  .checkbox-item:hover { background: var(--card-hover); }
+  .checkbox-item.active {
+    border-color: rgba(255,255,255,0.4);
+    background: rgba(255,255,255,0.1);
+  }
+  .color-picker-row {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .color-opt {
+    width: 28px; height: 28px; border-radius: 50%;
+    cursor: pointer; border: 2px solid transparent;
+    transition: all var(--transition);
+  }
+  .color-opt.selected { border-color: white; transform: scale(1.15); }
+  .color-opt:hover { transform: scale(1.1); }
+
+  /* ---- MEDICINE LIST IN DARSHAN ---- */
+  .admin-med-card {
+    padding: 16px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    margin-bottom: 10px;
+    display: flex; align-items: flex-start; gap: 12px;
+    transition: all var(--transition);
+  }
+  .admin-med-card:hover { background: var(--card-hover); }
+  .admin-med-actions { display: flex; gap: 8px; margin-left: auto; }
+
+  /* ---- MODAL ---- */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 1000;
+    opacity: 0; pointer-events: none;
+    transition: opacity var(--transition);
+    padding: 20px;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+  .modal {
+    background: #1a1a2e;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 28px;
+    width: 100%; max-width: 440px;
+    max-height: 90vh; overflow-y: auto;
+    transform: scale(0.95) translateY(10px);
+    transition: transform var(--transition);
+  }
+  .modal-overlay.open .modal { transform: scale(1) translateY(0); }
+  .modal-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .modal-title { font-size: 18px; font-weight: 700; }
+
+  /* ---- TOAST ---- */
+  .toast-container {
+    position: fixed; bottom: 24px; right: 24px;
+    z-index: 9999;
+    display: flex; flex-direction: column; gap: 10px;
+    pointer-events: none;
+  }
+  .toast {
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 14px; font-weight: 500;
+    background: #1e1e3a;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    transform: translateX(100px);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+    display: flex; align-items: center; gap: 10px;
+    max-width: 320px;
+  }
+  .toast.show { transform: translateX(0); opacity: 1; }
+  .toast-success { border-color: rgba(74,222,128,0.3); color: #4ade80; }
+  .toast-error { border-color: rgba(248,113,113,0.3); color: #f87171; }
+  .toast-info { border-color: rgba(96,165,250,0.3); color: #60a5fa; }
+
+  /* ---- SCROLLBAR ---- */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+
+  /* ---- ANIMATIONS ---- */
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  @keyframes bounce-in { 0%{transform:scale(0.5);opacity:0} 80%{transform:scale(1.05)} 100%{transform:scale(1);opacity:1} }
+  .bounce-in { animation: bounce-in 0.4s ease forwards; }
+
+  /* ---- STREAKS / PILLS ---- */
+  .streak-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 13px; font-weight: 600;
+    background: rgba(251,191,36,0.1);
+    border: 1px solid rgba(251,191,36,0.25);
+    color: #fbbf24;
+  }
+
+  /* ---- RESPONSIVE ---- */
+  @media (max-width: 480px) {
+    .form-row { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(3, 1fr); }
+    .stat-value { font-size: 20px; }
+  }
+
+  /* MOM theme overrides */
+  .theme-mom .cal-full { background: rgba(244,114,182,0.2); color: var(--mom); }
+  .theme-mom .progress-bar-fill { background: linear-gradient(90deg, var(--mom), #f9a8d4); }
+  .theme-mom .dose-check.checked { border-color: rgba(244,114,182,0.5); background: rgba(244,114,182,0.1); }
+  .theme-mom .dose-check.checked .dose-check-icon { background: var(--mom); }
+  .theme-mom .dose-check.checked .dose-check-label { color: var(--mom); }
+  /* DAD theme overrides */
+  .theme-dad .cal-full { background: rgba(96,165,250,0.2); color: var(--dad); }
+  .theme-dad .progress-bar-fill { background: linear-gradient(90deg, var(--dad), #93c5fd); }
+  .theme-dad .dose-check.checked { border-color: rgba(96,165,250,0.5); background: rgba(96,165,250,0.1); }
+  .theme-dad .dose-check.checked .dose-check-icon { background: var(--dad); }
+  .theme-dad .dose-check.checked .dose-check-label { color: var(--dad); }
+
+  .topbar-mom { background: linear-gradient(90deg, rgba(244,114,182,0.15), transparent); border-bottom-color: rgba(244,114,182,0.2); }
+  .topbar-dad { background: linear-gradient(90deg, rgba(96,165,250,0.15), transparent); border-bottom-color: rgba(96,165,250,0.2); }
+  .topbar-darshan { background: linear-gradient(90deg, rgba(52,211,153,0.15), transparent); border-bottom-color: rgba(52,211,153,0.2); }
+
+  .no-meds-banner {
+    text-align: center; padding: 32px 20px;
+    border-radius: 16px; border: 1.5px dashed var(--border);
+    color: var(--text-muted); font-size: 14px;
+    margin-bottom: 20px;
+  }
+  .cal-today-indicator {
+    position: absolute; bottom: 3px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: white;
+  }
+  #view-mom, #view-dad { background: var(--bg); }
+  #view-darshan { background: var(--bg); }
+</style>
+</head>
+<body>
+
+<!-- =================== HOME VIEW =================== -->
+<div class="view active" id="view-home">
+  <div class="home-hero">
+    <div class="home-logo">
+      <i data-lucide="pill" style="width:40px;height:40px;"></i>
+    </div>
+    <h1 class="home-title">Family Medicine<br>Tracker</h1>
+    <p class="home-subtitle">Managed with love by Darshan</p>
+  </div>
+
+  <div class="home-cards">
+    <div class="home-card home-card-mom" onclick="openPerson('mom')">
+      <div class="home-card-icon">
+        <span style="font-size:28px;">🌸</span>
+      </div>
+      <div class="home-card-info">
+        <h3 style="color:var(--mom);">Mom</h3>
+        <p>Track mom's medicines</p>
+        <div class="home-badge badge-mom" id="home-badge-mom">
+          <i data-lucide="pill" style="width:11px;height:11px;"></i>
+          <span id="home-mom-count">0 medicines</span>
+        </div>
+      </div>
+      <i data-lucide="chevron-right" class="home-card-arrow" style="width:20px;height:20px;"></i>
+    </div>
+
+    <div class="home-card home-card-dad" onclick="openPerson('dad')">
+      <div class="home-card-icon">
+        <span style="font-size:28px;">🏔️</span>
+      </div>
+      <div class="home-card-info">
+        <h3 style="color:var(--dad);">Dad</h3>
+        <p>Track dad's medicines</p>
+        <div class="home-badge badge-dad" id="home-badge-dad">
+          <i data-lucide="pill" style="width:11px;height:11px;"></i>
+          <span id="home-dad-count">0 medicines</span>
+        </div>
+      </div>
+      <i data-lucide="chevron-right" class="home-card-arrow" style="width:20px;height:20px;"></i>
+    </div>
+
+    <div class="home-card home-card-darshan" onclick="openDarshan()">
+      <div class="home-card-icon">
+        <span style="font-size:28px;">⚕️</span>
+      </div>
+      <div class="home-card-info">
+        <h3 style="color:var(--darshan);">Darshan</h3>
+        <p>Manage medicines for both</p>
+        <div class="home-badge badge-darshan">
+          <i data-lucide="settings" style="width:11px;height:11px;"></i>
+          Admin Panel
+        </div>
+      </div>
+      <i data-lucide="chevron-right" class="home-card-arrow" style="width:20px;height:20px;"></i>
+    </div>
+  </div>
+</div>
+
+<!-- =================== PERSON VIEW (MOM / DAD) =================== -->
+<div class="view" id="view-person">
+  <!-- Topbar -->
+  <div class="topbar" id="person-topbar">
+    <button class="btn-icon" onclick="goHome()">
+      <i data-lucide="arrow-left" style="width:18px;height:18px;"></i>
+    </button>
+    <div>
+      <div class="topbar-title" id="person-title">Mom</div>
+      <div class="topbar-subtitle" id="person-date-title"></div>
+    </div>
+    <div id="person-streak" class="streak-pill" style="display:none;">
+      <i data-lucide="flame" style="width:14px;height:14px;"></i>
+      <span id="streak-count">0 day streak</span>
+    </div>
+  </div>
+
+  <div class="person-view-content" id="person-content">
+    <!-- Stats -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card glass-sm">
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-label">Medicines</div>
+      </div>
+      <div class="stat-card glass-sm">
+        <div class="stat-value" id="stat-today">0%</div>
+        <div class="stat-label">Today</div>
+      </div>
+      <div class="stat-card glass-sm">
+        <div class="stat-value" id="stat-streak">0</div>
+        <div class="stat-label">Day Streak</div>
+      </div>
+    </div>
+
+    <!-- Calendar -->
+    <div class="glass calendar-wrap">
+      <div style="padding:16px 16px 0;">
+        <div class="cal-nav">
+          <button class="btn-icon" id="cal-prev" onclick="calNav(-1)">
+            <i data-lucide="chevron-left" style="width:16px;height:16px;"></i>
+          </button>
+          <div class="cal-month" id="cal-month-label"></div>
+          <button class="btn-icon" id="cal-next" onclick="calNav(1)">
+            <i data-lucide="chevron-right" style="width:16px;height:16px;"></i>
+          </button>
+        </div>
+        <div class="cal-grid" id="cal-day-labels">
+          <div class="cal-day-label">Su</div>
+          <div class="cal-day-label">Mo</div>
+          <div class="cal-day-label">Tu</div>
+          <div class="cal-day-label">We</div>
+          <div class="cal-day-label">Th</div>
+          <div class="cal-day-label">Fr</div>
+          <div class="cal-day-label">Sa</div>
+        </div>
+      </div>
+      <div style="padding:8px 16px 16px;">
+        <div class="cal-grid" id="cal-days"></div>
+      </div>
+      <div style="padding:0 16px 16px;display:flex;gap:12px;flex-wrap:wrap;">
+        <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);">
+          <span style="width:10px;height:10px;border-radius:50%;background:rgba(74,222,128,0.3);display:inline-block;"></span>All taken
+        </span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);">
+          <span style="width:10px;height:10px;border-radius:50%;background:rgba(251,191,36,0.3);display:inline-block;"></span>Partial
+        </span>
+        <span style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-muted);">
+          <span style="width:10px;height:10px;border-radius:50%;background:rgba(248,113,113,0.2);display:inline-block;"></span>Missed
+        </span>
+      </div>
+    </div>
+
+    <!-- Selected Day Section -->
+    <div class="section-header">
+      <div>
+        <div class="section-title">Medicines for</div>
+        <div class="today-date-label" id="selected-date-label"></div>
+      </div>
+      <div id="day-progress-wrap" style="text-align:right;">
+        <div style="font-size:22px;font-weight:800;" id="day-progress-pct">0%</div>
+        <div style="font-size:11px;color:var(--text-muted);">completed</div>
+      </div>
+    </div>
+
+    <div class="progress-bar-wrap" style="margin-bottom:20px;">
+      <div class="progress-bar-fill" id="day-progress-bar" style="width:0%"></div>
+    </div>
+
+    <div id="med-list-container">
+      <!-- Medicine cards rendered here -->
+    </div>
+  </div>
+</div>
+
+<!-- =================== DARSHAN VIEW =================== -->
+<div class="view" id="view-darshan">
+  <div class="topbar topbar-darshan">
+    <button class="btn-icon" onclick="goHome()">
+      <i data-lucide="arrow-left" style="width:18px;height:18px;"></i>
+    </button>
+    <div>
+      <div class="topbar-title">Darshan's Panel</div>
+      <div class="topbar-subtitle">Manage family medicines</div>
+    </div>
+    <button class="btn btn-sm btn-darshan" onclick="openAddModal()">
+      <i data-lucide="plus" style="width:14px;height:14px;"></i> Add
+    </button>
+  </div>
+
+  <div class="darshan-tabs">
+    <div class="darshan-tab active-mom" id="tab-mom" onclick="switchDarshanTab('mom')">
+      🌸 Mom
+    </div>
+    <div class="darshan-tab" id="tab-dad" onclick="switchDarshanTab('dad')">
+      🏔️ Dad
+    </div>
+  </div>
+
+  <div class="darshan-content">
+    <div id="darshan-med-list">
+      <!-- Admin medicine list -->
+    </div>
+  </div>
+</div>
+
+<!-- =================== ADD/EDIT MEDICINE MODAL =================== -->
+<div class="modal-overlay" id="modal-overlay" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Add Medicine</div>
+      <button class="btn-icon" onclick="closeModalDirect()">
+        <i data-lucide="x" style="width:16px;height:16px;"></i>
+      </button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">For</label>
+      <select class="form-input" id="med-person">
+        <option value="mom">🌸 Mom</option>
+        <option value="dad">🏔️ Dad</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Medicine Name *</label>
+      <input type="text" class="form-input" id="med-name" placeholder="e.g. Metformin" />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Dosage</label>
+        <input type="text" class="form-input" id="med-dosage" placeholder="e.g. 500mg" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Frequency</label>
+        <select class="form-input" id="med-frequency">
+          <option value="daily">Daily</option>
+          <option value="twice">Twice daily</option>
+          <option value="thrice">Thrice daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="as-needed">As needed</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">When to take</label>
+      <select class="form-input" id="med-meal">
+        <option value="before">Before Meal</option>
+        <option value="after">After Meal</option>
+        <option value="with">With Meal</option>
+        <option value="anytime">Anytime</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Time of Day</label>
+      <div class="checkbox-group" id="time-checkboxes">
+        <div class="checkbox-item" data-val="morning" onclick="toggleTime(this)">🌅 Morning</div>
+        <div class="checkbox-item" data-val="afternoon" onclick="toggleTime(this)">☀️ Afternoon</div>
+        <div class="checkbox-item" data-val="evening" onclick="toggleTime(this)">🌆 Evening</div>
+        <div class="checkbox-item" data-val="night" onclick="toggleTime(this)">🌙 Night</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Color</label>
+      <div class="color-picker-row" id="color-picker">
+        <div class="color-opt selected" data-color="#f472b6" style="background:#f472b6;" onclick="pickColor(this)"></div>
+        <div class="color-opt" data-color="#60a5fa" style="background:#60a5fa;" onclick="pickColor(this)"></div>
+        <div class="color-opt" data-color="#34d399" style="background:#34d399;" onclick="pickColor(this)"></div>
+        <div class="color-opt" data-color="#fbbf24" style="background:#fbbf24;" onclick="pickColor(this)"></div>
+        <div class="color-opt" data-color="#f87171" style="background:#f87171;" onclick="pickColor(this)"></div>
+        <div class="color-opt" data-color="#a78bfa" style="background:#a78bfa;" onclick="pickColor(this)"></div>
+        <div class="color-opt" data-color="#fb923c" style="background:#fb923c;" onclick="pickColor(this)"></div>
+        <div class="color-opt" data-color="#e879f9" style="background:#e879f9;" onclick="pickColor(this)"></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <input type="text" class="form-input" id="med-notes" placeholder="e.g. Take with warm water" />
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Start Date</label>
+        <input type="date" class="form-input" id="med-start" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">End Date (optional)</label>
+        <input type="date" class="form-input" id="med-end" />
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModalDirect()">Cancel</button>
+      <button class="btn btn-darshan" onclick="saveMedicine()">
+        <i data-lucide="check" style="width:15px;height:15px;"></i>
+        Save Medicine
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- =================== TOAST CONTAINER =================== -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// =============================================
+// DATA MANAGEMENT
+// =============================================
+const STORAGE_MEDICINES = 'family_medicines';
+const STORAGE_TRACKING = 'family_tracking';
+
+function loadData() {
+  try {
+    return {
+      medicines: JSON.parse(localStorage.getItem(STORAGE_MEDICINES)) || { mom: [], dad: [] },
+      tracking: JSON.parse(localStorage.getItem(STORAGE_TRACKING)) || { mom: {}, dad: {} }
+    };
+  } catch { return { medicines: { mom: [], dad: [] }, tracking: { mom: {}, dad: {} } }; }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_MEDICINES, JSON.stringify(data.medicines));
+  localStorage.setItem(STORAGE_TRACKING, JSON.stringify(data.tracking));
+}
+
+let appData = loadData();
+
+// =============================================
+// APP STATE
+// =============================================
+let currentPerson = 'mom'; // 'mom' or 'dad'
+let calViewYear = new Date().getFullYear();
+let calViewMonth = new Date().getMonth();
+let selectedDate = new Date();
+let editingMedId = null;
+let darshanTab = 'mom';
+
+// =============================================
+// VIEW ROUTING
+// =============================================
+function showView(id) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // scroll to top
+  document.getElementById(id).scrollTo(0, 0);
+}
+
+function goHome() {
+  showView('view-home');
+  updateHomeBadges();
+}
+
+function openPerson(person) {
+  currentPerson = person;
+  selectedDate = new Date();
+  calViewYear = selectedDate.getFullYear();
+  calViewMonth = selectedDate.getMonth();
+
+  const topbar = document.getElementById('person-topbar');
+  topbar.className = `topbar topbar-${person}`;
+
+  const view = document.getElementById('view-person');
+  view.className = `view active theme-${person}`;
+
+  document.getElementById('person-title').textContent = person === 'mom' ? '🌸 Mom' : '🏔️ Dad';
+
+  renderPersonView();
+  showView('view-person');
+}
+
+function openDarshan() {
+  darshanTab = 'mom';
+  updateDarshanTabs();
+  renderDarshanList();
+  showView('view-darshan');
+}
+
+// =============================================
+// DATE UTILS
+// =============================================
+function dateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function formatDisplayDate(d) {
+  return d.toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+
+function isToday(d) { return dateKey(d) === dateKey(new Date()); }
+function isFuture(d) { const n = new Date(); n.setHours(0,0,0,0); d = new Date(d); d.setHours(0,0,0,0); return d > n; }
+
+// =============================================
+// MEDICINE HELPERS
+// =============================================
+function getMedsForDate(person, date) {
+  const key = dateKey(date);
+  const meds = appData.medicines[person];
+  return meds.filter(m => {
+    if (m.startDate && key < m.startDate) return false;
+    if (m.endDate && key > m.endDate) return false;
+    return true;
+  });
+}
+
+function getTrackingForDate(person, date) {
+  return (appData.tracking[person][dateKey(date)] || {});
+}
+
+function getDayCompletion(person, date) {
+  const meds = getMedsForDate(person, date);
+  if (!meds.length) return null;
+  const tracking = getTrackingForDate(person, date);
+  let total = 0, done = 0;
+  meds.forEach(m => {
+    const times = m.timeOfDay && m.timeOfDay.length ? m.timeOfDay : ['anytime'];
+    times.forEach(t => {
+      total++;
+      if (tracking[m.id] && tracking[m.id][t]) done++;
+    });
+  });
+  return { total, done, pct: total ? Math.round((done/total)*100) : 0 };
+}
+
+function toggleDose(medId, timeSlot) {
+  const key = dateKey(selectedDate);
+  if (!appData.tracking[currentPerson][key]) appData.tracking[currentPerson][key] = {};
+  if (!appData.tracking[currentPerson][key][medId]) appData.tracking[currentPerson][key][medId] = {};
+  const cur = appData.tracking[currentPerson][key][medId][timeSlot];
+  appData.tracking[currentPerson][key][medId][timeSlot] = !cur;
+  saveData(appData);
+  renderMedList();
+  renderCalendar();
+  updateStats();
+}
+
+// =============================================
+// STREAK CALCULATION
+// =============================================
+function calcStreak(person) {
+  let streak = 0;
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  while (true) {
+    const comp = getDayCompletion(person, d);
+    if (!comp || comp.pct < 100) break;
+    streak++;
+    d.setDate(d.getDate() - 1);
+  }
+  return streak;
+}
+
+// =============================================
+// RENDER: PERSON VIEW
+// =============================================
+function renderPersonView() {
+  renderCalendar();
+  renderMedList();
+  updateStats();
+  updateSelectedDateLabel();
+}
+
+function updateSelectedDateLabel() {
+  document.getElementById('selected-date-label').textContent = isToday(selectedDate)
+    ? 'Today, ' + selectedDate.toLocaleDateString('en-IN', { day:'numeric', month:'long' })
+    : formatDisplayDate(selectedDate);
+  document.getElementById('person-date-title').textContent =
+    new Date().toLocaleDateString('en-IN', { day:'numeric', month:'long', year:'numeric' });
+}
+
+function updateStats() {
+  const meds = appData.medicines[currentPerson];
+  document.getElementById('stat-total').textContent = meds.length;
+
+  const comp = getDayCompletion(currentPerson, new Date());
+  document.getElementById('stat-today').textContent = comp ? comp.pct + '%' : '—';
+
+  const streak = calcStreak(currentPerson);
+  document.getElementById('stat-streak').textContent = streak;
+
+  const streakEl = document.getElementById('person-streak');
+  if (streak >= 2) {
+    streakEl.style.display = 'flex';
+    document.getElementById('streak-count').textContent = streak + ' day streak 🔥';
+  } else {
+    streakEl.style.display = 'none';
+  }
+
+  // Day progress bar
+  const dc = getDayCompletion(currentPerson, selectedDate);
+  const pct = dc ? dc.pct : 0;
+  document.getElementById('day-progress-pct').textContent = pct + '%';
+  document.getElementById('day-progress-bar').style.width = pct + '%';
+}
+
+// =============================================
+// RENDER: CALENDAR
+// =============================================
+function calNav(dir) {
+  calViewMonth += dir;
+  if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+  if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('cal-month-label').textContent = months[calViewMonth] + ' ' + calViewYear;
+
+  const firstDay = new Date(calViewYear, calViewMonth, 1).getDay();
+  const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let html = '';
+  for (let i = 0; i < firstDay; i++) html += '<div class="cal-day cal-empty"></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(calViewYear, calViewMonth, d);
+    date.setHours(0,0,0,0);
+    const key = dateKey(date);
+    const selKey = dateKey(selectedDate);
+    const todKey = dateKey(today);
+
+    let cls = 'cal-day cal-none';
+    let dot = '';
+
+    if (!isFuture(date)) {
+      const comp = getDayCompletion(currentPerson, date);
+      if (comp && comp.total > 0) {
+        if (comp.pct === 100) cls = 'cal-day cal-full';
+        else if (comp.done > 0) cls = 'cal-day cal-partial';
+        else cls = 'cal-day cal-missed';
+      }
+    } else {
+      cls = 'cal-day cal-future';
+    }
+
+    if (key === todKey) cls += ' cal-today';
+    if (key === selKey) cls += ' cal-selected';
+
+    const clickable = !isFuture(date) ? `onclick="selectCalDay(${calViewYear},${calViewMonth},${d})"` : '';
+    html += `<div class="${cls}" ${clickable}>${d}</div>`;
+  }
+
+  document.getElementById('cal-days').innerHTML = html;
+}
+
+function selectCalDay(y, m, d) {
+  selectedDate = new Date(y, m, d);
+  updateSelectedDateLabel();
+  renderMedList();
+  updateStats();
+  renderCalendar();
+}
+
+// =============================================
+// RENDER: MEDICINE LIST
+// =============================================
+const mealLabels = { before: 'Before Meal', after: 'After Meal', with: 'With Meal', anytime: 'Anytime' };
+const mealTagClass = { before: 'tag-before', after: 'tag-after', with: 'tag-with', anytime: 'tag-anytime' };
+const mealIcons = { before: '⏰', after: '🍽️', with: '🥗', anytime: '🕐' };
+const timeLabels = { morning:'Morning', afternoon:'Afternoon', evening:'Evening', night:'Night' };
+const timeEmojis = { morning:'🌅', afternoon:'☀️', evening:'🌆', night:'🌙' };
+
+function renderMedList() {
+  const meds = getMedsForDate(currentPerson, selectedDate);
+  const tracking = getTrackingForDate(currentPerson, selectedDate);
+  const container = document.getElementById('med-list-container');
+  const isFut = isFuture(selectedDate);
+
+  if (!meds.length) {
+    container.innerHTML = `
+      <div class="no-meds-banner">
+        <div style="font-size:36px;margin-bottom:10px;">💊</div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px;color:var(--text);">No medicines for this day</div>
+        <div>Darshan can add medicines from the admin panel</div>
+      </div>`;
+    return;
+  }
+
+  let html = '';
+  meds.forEach(med => {
+    const times = med.timeOfDay && med.timeOfDay.length ? med.timeOfDay : ['anytime'];
+    let dosesHtml = '';
+    times.forEach(t => {
+      const checked = tracking[med.id] && tracking[med.id][t];
+      const disabledAttr = isFut ? 'style="pointer-events:none;opacity:0.5;"' : '';
+      dosesHtml += `
+        <div class="dose-check ${checked ? 'checked' : ''}" ${disabledAttr}
+             onclick="${isFut ? '' : `toggleDose('${med.id}','${t}')`}">
+          <div class="dose-check-icon">
+            <i data-lucide="${checked ? 'check' : timeIconName(t)}" style="width:14px;height:14px;"></i>
+          </div>
+          <div class="dose-check-label">${timeEmojis[t] || ''} ${timeLabels[t] || t}</div>
+        </div>`;
+    });
+
+    const notesTag = med.notes ? `<span class="tag tag-note" title="${med.notes}"><i data-lucide="info" style="width:10px;height:10px;"></i>${med.notes}</span>` : '';
+    const freqLabel = freqText(med.frequency);
+
+    html += `
+      <div class="med-card">
+        <div class="med-card-top">
+          <div class="med-dot" style="background:${med.color || '#a78bfa'};box-shadow:0 0 8px ${med.color || '#a78bfa'}44;"></div>
+          <div class="med-info">
+            <div class="med-name">${med.name}</div>
+            <div class="med-dosage">${med.dosage || ''}${med.dosage && freqLabel ? ' · ' : ''}${freqLabel}</div>
+          </div>
+        </div>
+        <div class="med-tags">
+          <span class="tag ${mealTagClass[med.meal] || 'tag-anytime'}">${mealIcons[med.meal] || ''} ${mealLabels[med.meal] || med.meal}</span>
+          ${notesTag}
+        </div>
+        <div class="dose-checks">${dosesHtml}</div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
+  lucide.createIcons();
+}
+
+function timeIconName(t) {
+  return { morning:'sunrise', afternoon:'sun', evening:'sunset', night:'moon', anytime:'clock' }[t] || 'clock';
+}
+function freqText(f) {
+  return { daily:'Once daily', twice:'Twice daily', thrice:'3× daily', weekly:'Weekly', 'as-needed':'As needed' }[f] || f || '';
+}
+
+// =============================================
+// RENDER: HOME BADGES
+// =============================================
+function updateHomeBadges() {
+  document.getElementById('home-mom-count').textContent = appData.medicines.mom.length + ' medicine' + (appData.medicines.mom.length !== 1 ? 's' : '');
+  document.getElementById('home-dad-count').textContent = appData.medicines.dad.length + ' medicine' + (appData.medicines.dad.length !== 1 ? 's' : '');
+}
+
+// =============================================
+// DARSHAN ADMIN
+// =============================================
+function switchDarshanTab(person) {
+  darshanTab = person;
+  updateDarshanTabs();
+  renderDarshanList();
+}
+
+function updateDarshanTabs() {
+  document.getElementById('tab-mom').className = 'darshan-tab' + (darshanTab === 'mom' ? ' active-mom' : '');
+  document.getElementById('tab-dad').className = 'darshan-tab' + (darshanTab === 'dad' ? ' active-dad' : '');
+}
+
+function renderDarshanList() {
+  const meds = appData.medicines[darshanTab];
+  const container = document.getElementById('darshan-med-list');
+
+  if (!meds.length) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <i data-lucide="pill" style="width:48px;height:48px;display:block;margin:0 auto 12px;"></i>
+        <h3>No medicines added yet</h3>
+        <p>Tap "+ Add" to add ${darshanTab === 'mom' ? "mom's" : "dad's"} first medicine</p>
+      </div>`;
+    lucide.createIcons();
+    return;
+  }
+
+  let html = '';
+  meds.forEach(med => {
+    const times = med.timeOfDay && med.timeOfDay.length ? med.timeOfDay.map(t => timeEmojis[t] + ' ' + timeLabels[t]).join(', ') : 'Any time';
+    html += `
+      <div class="admin-med-card">
+        <div class="med-dot" style="background:${med.color};box-shadow:0 0 8px ${med.color}44;width:12px;height:12px;margin-top:4px;flex-shrink:0;border-radius:50%;"></div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:15px;margin-bottom:3px;">${med.name}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">${med.dosage || 'No dosage'} · ${freqText(med.frequency)}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;">
+            <span class="tag ${mealTagClass[med.meal] || 'tag-anytime'}" style="font-size:10px;">${mealIcons[med.meal] || ''} ${mealLabels[med.meal]}</span>
+            <span class="tag tag-time" style="font-size:10px;">${times}</span>
+            ${med.startDate ? `<span class="tag tag-time" style="font-size:10px;"><i data-lucide="calendar" style="width:9px;height:9px;"></i> From ${med.startDate}</span>` : ''}
+          </div>
+          ${med.notes ? `<div style="font-size:12px;color:var(--text-muted);margin-top:5px;">📝 ${med.notes}</div>` : ''}
+        </div>
+        <div class="admin-med-actions">
+          <button class="btn-icon" onclick="editMedicine('${med.id}','${darshanTab}')">
+            <i data-lucide="edit-2" style="width:14px;height:14px;"></i>
+          </button>
+          <button class="btn-icon" onclick="deleteMedicine('${med.id}','${darshanTab}')" style="color:var(--danger);">
+            <i data-lucide="trash-2" style="width:14px;height:14px;"></i>
+          </button>
+        </div>
+      </div>`;
+  });
+
+  container.innerHTML = html;
+  lucide.createIcons();
+}
+
+// =============================================
+// MODAL: ADD / EDIT MEDICINE
+// =============================================
+let selectedColor = '#f472b6';
+let selectedTimes = [];
+
+function openAddModal() {
+  editingMedId = null;
+  document.getElementById('modal-title').textContent = 'Add Medicine';
+  document.getElementById('med-person').value = darshanTab;
+  document.getElementById('med-name').value = '';
+  document.getElementById('med-dosage').value = '';
+  document.getElementById('med-frequency').value = 'daily';
+  document.getElementById('med-meal').value = 'after';
+  document.getElementById('med-notes').value = '';
+  document.getElementById('med-start').value = dateKey(new Date());
+  document.getElementById('med-end').value = '';
+  selectedColor = '#f472b6';
+  selectedTimes = ['morning'];
+  updateColorPicker();
+  updateTimeCheckboxes();
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function editMedicine(id, person) {
+  const med = appData.medicines[person].find(m => m.id === id);
+  if (!med) return;
+  editingMedId = id;
+  document.getElementById('modal-title').textContent = 'Edit Medicine';
+  document.getElementById('med-person').value = person;
+  document.getElementById('med-name').value = med.name;
+  document.getElementById('med-dosage').value = med.dosage || '';
+  document.getElementById('med-frequency').value = med.frequency || 'daily';
+  document.getElementById('med-meal').value = med.meal || 'after';
+  document.getElementById('med-notes').value = med.notes || '';
+  document.getElementById('med-start').value = med.startDate || '';
+  document.getElementById('med-end').value = med.endDate || '';
+  selectedColor = med.color || '#f472b6';
+  selectedTimes = med.timeOfDay ? [...med.timeOfDay] : ['morning'];
+  updateColorPicker();
+  updateTimeCheckboxes();
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function saveMedicine() {
+  const name = document.getElementById('med-name').value.trim();
+  if (!name) { toast('Please enter a medicine name', 'error'); return; }
+
+  const person = document.getElementById('med-person').value;
+  const med = {
+    id: editingMedId || 'med_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+    name,
+    dosage: document.getElementById('med-dosage').value.trim(),
+    frequency: document.getElementById('med-frequency').value,
+    meal: document.getElementById('med-meal').value,
+    timeOfDay: selectedTimes.length ? [...selectedTimes] : ['anytime'],
+    color: selectedColor,
+    notes: document.getElementById('med-notes').value.trim(),
+    startDate: document.getElementById('med-start').value || dateKey(new Date()),
+    endDate: document.getElementById('med-end').value || null,
+  };
+
+  if (editingMedId) {
+    const oldPerson = Object.keys(appData.medicines).find(p => appData.medicines[p].some(m => m.id === editingMedId));
+    if (oldPerson && oldPerson !== person) {
+      appData.medicines[oldPerson] = appData.medicines[oldPerson].filter(m => m.id !== editingMedId);
+    }
+    const idx = appData.medicines[person].findIndex(m => m.id === editingMedId);
+    if (idx >= 0) appData.medicines[person][idx] = med;
+    else appData.medicines[person].push(med);
+    toast('Medicine updated!', 'success');
+  } else {
+    appData.medicines[person].push(med);
+    toast('Medicine added!', 'success');
+  }
+
+  saveData(appData);
+  closeModalDirect();
+  renderDarshanList();
+  updateHomeBadges();
+}
+
+function deleteMedicine(id, person) {
+  if (!confirm('Delete this medicine? Tracking history will be kept.')) return;
+  appData.medicines[person] = appData.medicines[person].filter(m => m.id !== id);
+  saveData(appData);
+  renderDarshanList();
+  updateHomeBadges();
+  toast('Medicine deleted', 'info');
+}
+
+function toggleTime(el) {
+  const val = el.dataset.val;
+  if (selectedTimes.includes(val)) {
+    selectedTimes = selectedTimes.filter(t => t !== val);
+    el.classList.remove('active');
+  } else {
+    selectedTimes.push(val);
+    el.classList.add('active');
+  }
+}
+
+function pickColor(el) {
+  selectedColor = el.dataset.color;
+  updateColorPicker();
+}
+
+function updateColorPicker() {
+  document.querySelectorAll('.color-opt').forEach(el => {
+    el.classList.toggle('selected', el.dataset.color === selectedColor);
+  });
+}
+
+function updateTimeCheckboxes() {
+  document.querySelectorAll('.checkbox-item').forEach(el => {
+    el.classList.toggle('active', selectedTimes.includes(el.dataset.val));
+  });
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
+// =============================================
+// TOAST
+// =============================================
+function toast(msg, type = 'info') {
+  const icons = { success: 'check-circle', error: 'alert-circle', info: 'info' };
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.innerHTML = `<i data-lucide="${icons[type]}" style="width:16px;height:16px;flex-shrink:0;"></i>${msg}`;
+  document.getElementById('toast-container').appendChild(t);
+  lucide.createIcons({ nodes: [t] });
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => {
+    t.classList.remove('show');
+    setTimeout(() => t.remove(), 400);
+  }, 2800);
+}
+
+// =============================================
+// INIT
+// =============================================
+function init() {
+  lucide.createIcons();
+  updateHomeBadges();
+
+  // Seed sample data if empty for demo
+  if (!appData.medicines.mom.length && !appData.medicines.dad.length) {
+    const today = dateKey(new Date());
+    appData.medicines.mom = [
+      { id:'med_m1', name:'Metformin', dosage:'500mg', frequency:'twice', meal:'after', timeOfDay:['morning','night'], color:'#f472b6', notes:'Take with warm water', startDate:today, endDate:null },
+      { id:'med_m2', name:'Vitamin D3', dosage:'1000 IU', frequency:'daily', meal:'after', timeOfDay:['morning'], color:'#fbbf24', notes:'', startDate:today, endDate:null },
+      { id:'med_m3', name:'Thyronorm', dosage:'50mcg', frequency:'daily', meal:'before', timeOfDay:['morning'], color:'#a78bfa', notes:'On empty stomach', startDate:today, endDate:null },
+    ];
+    appData.medicines.dad = [
+      { id:'med_d1', name:'Amlodipine', dosage:'5mg', frequency:'daily', meal:'after', timeOfDay:['morning'], color:'#60a5fa', notes:'For blood pressure', startDate:today, endDate:null },
+      { id:'med_d2', name:'Atorvastatin', dosage:'10mg', frequency:'daily', meal:'after', timeOfDay:['night'], color:'#34d399', notes:'', startDate:today, endDate:null },
+      { id:'med_d3', name:'Ecosprin', dosage:'75mg', frequency:'daily', meal:'after', timeOfDay:['morning'], color:'#fb923c', notes:'After breakfast', startDate:today, endDate:null },
+    ];
+    saveData(appData);
+    updateHomeBadges();
+  }
+}
+
+init();
+</script>
+</body>
+</html>
